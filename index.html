@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Dragon Ball – La Quête des 7 Boules</title>
+<style>
+  :root { --btn: rgba(255,255,255,0.14); --btn-on: rgba(255,210,90,0.55); --line: rgba(255,255,255,0.35); }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  body { font-family: system-ui, sans-serif; color: #ddd; }
+  #wrap { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #screen { image-rendering: pixelated; image-rendering: crisp-edges; display: block; background: #000; box-shadow: 0 0 40px rgba(80,100,255,0.15); }
+  #help { position: fixed; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 12px; color: #667; pointer-events: none; }
+  #pad { display: none; position: relative; width: 100%; max-width: 520px; height: 190px; flex: 0 0 auto; }
+  body.touch #pad { display: block; }
+  body.touch #help { display: none; }
+  .dpad { position: absolute; left: 18px; bottom: 22px; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); }
+  .dpad span { position: absolute; width: 50px; height: 50px; background: var(--btn); border: 1px solid var(--line); border-radius: 10px; }
+  .dpad span.on { background: var(--btn-on); }
+  .dpad .u { left: 50px; top: 0; } .dpad .d { left: 50px; bottom: 0; } .dpad .l { left: 0; top: 50px; } .dpad .r { right: 0; top: 50px; }
+  .dpad .c { left: 50px; top: 50px; border: none; background: rgba(255,255,255,0.06); border-radius: 0; }
+  .btn { position: absolute; width: 66px; height: 66px; border-radius: 50%; background: var(--btn); border: 2px solid var(--line); color: #fff; font: bold 22px system-ui; display: flex; align-items: center; justify-content: center; }
+  .btn.on { background: var(--btn-on); }
+  .btn.a { right: 22px; bottom: 70px; } .btn.b { right: 100px; bottom: 30px; }
+  .small { position: absolute; height: 28px; padding: 0 12px; border-radius: 14px; background: var(--btn); border: 1px solid var(--line); color: #ddd; font: 12px system-ui; display: flex; align-items: center; }
+  .small.on { background: var(--btn-on); }
+  .small.menu { right: 30px; top: 8px; } .small.run { right: 120px; top: 8px; }
+  @media (orientation: landscape) {
+    body.touch #pad { position: fixed; inset: 0; max-width: none; height: auto; pointer-events: none; }
+    body.touch #pad > * { pointer-events: auto; }
+    body.touch .small.menu { top: auto; bottom: 160px; right: 24px; }
+    body.touch .small.run { top: auto; bottom: 160px; right: 110px; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="screen" width="256" height="224"></canvas>
+  <div id="pad">
+    <div class="dpad" id="dpad"><span class="u"></span><span class="d"></span><span class="l"></span><span class="r"></span><span class="c"></span></div>
+    <div class="btn a" data-b="a">A</div>
+    <div class="btn b" data-b="b">B</div>
+    <div class="small menu" data-b="menu">MENU</div>
+    <div class="small run" data-b="run">COURIR</div>
+  </div>
+</div>
+<div id="help">Flèches / ZQSD : bouger · Z / Entrée : valider · X / Échap : retour &amp; menu · Maj : courir · M : son</div>
+<script src="js/font.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/gfx.js"></script>
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/field.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/main.js"></script>
+<script>
+  // Mise à l'échelle et commandes tactiles
+  (function () {
+    const cv = document.getElementById('screen');
+    const touch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+    if (touch) document.body.classList.add('touch');
+    function fit() {
+      const land = window.innerWidth > window.innerHeight;
+      const padH = touch && !land ? 190 : 0;
+      const availW = window.innerWidth, availH = window.innerHeight - padH - (touch ? 0 : 24);
+      let s = Math.min(availW / 256, availH / 224);
+      if (s >= 2) s = Math.floor(s);
+      cv.style.width = Math.floor(256 * s) + 'px';
+      cv.style.height = Math.floor(224 * s) + 'px';
+    }
+    window.addEventListener('resize', fit); fit();
+    // boutons
+    document.querySelectorAll('[data-b]').forEach(el => {
+      const b = el.dataset.b;
+      const on = e => { e.preventDefault(); el.classList.add('on'); Input.setTouch(b, true); };
+      const off = e => { e.preventDefault(); el.classList.remove('on'); Input.setTouch(b, false); };
+      el.addEventListener('pointerdown', on);
+      el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('pointerleave', off);
+    });
+    // croix directionnelle (on peut glisser le doigt)
+    const dp = document.getElementById('dpad');
+    const parts = { up: dp.querySelector('.u'), down: dp.querySelector('.d'), left: dp.querySelector('.l'), right: dp.querySelector('.r') };
+    function setDir(e) {
+      const r = dp.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+      const dead = 14;
+      const st = { left: dx < -dead && Math.abs(dx) > Math.abs(dy) * 0.45, right: dx > dead && Math.abs(dx) > Math.abs(dy) * 0.45, up: dy < -dead && Math.abs(dy) > Math.abs(dx) * 0.45, down: dy > dead && Math.abs(dy) > Math.abs(dx) * 0.45 };
+      for (const k in st) { Input.setTouch(k, st[k]); parts[k].classList.toggle('on', st[k]); }
+    }
+    function clearDir() { for (const k in parts) { Input.setTouch(k, false); parts[k].classList.remove('on'); } }
+    dp.addEventListener('pointerdown', e => { e.preventDefault(); dp.setPointerCapture(e.pointerId); setDir(e); });
+    dp.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') setDir(e); });
+    dp.addEventListener('pointerup', clearDir); dp.addEventListener('pointercancel', clearDir);
+    document.addEventListener('contextmenu', e => e.preventDefault());
+  })();
+</script>
+</body>
+</html>
