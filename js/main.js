@@ -68,7 +68,7 @@ const Main = (() => {
     bigText('La Quête des 7 Boules', 128, 128, 1, '#fff4c0', '#401020');
     // Goku sur Kinto'un
     const cx = ((t * 0.9) % (SW + 120)) - 60, cy = 150 + Math.sin(t * 0.08) * 4;
-    ctx.drawImage(GFX.char('goku').right[0], Math.round(cx + 9), Math.round(cy - 15));
+    ctx.drawImage(GFX.char('goku').right[0], Math.round(cx + 5), Math.round(cy - 22));
     ctx.drawImage(kintoun(), Math.round(cx), Math.round(cy));
     // menu
     const opts = menuOptions();
@@ -93,7 +93,7 @@ const Main = (() => {
   function resetWorld() {
     Tasks.reset(); Battle.reset();
     Field.locks = 0; Field.battle = false; Field.camLock = false;
-    Shenron.active = false;
+    Shenron.active = false; epi = null;
   }
   async function newGame() {
     resetWorld();
@@ -217,90 +217,298 @@ const Main = (() => {
     ctx.fillStyle = '#c84030';
     for (let i = 0; i < 6; i++) ctx.fillRect(x + 8 + i * 2, y - 6 + i * 2, 3, 2);
   }
+  // ---------------- Finale : Pilaf invoque Shenron ----------------
+  const camPan = (y, frames) => Tasks.tween(Field, { camY: y }, frames, 'inOut');
   async function shenronFinale() {
     const S = Shenron;
     await UI.fadeTo(1, 30);
     SND.stopMusic(true);
-    Field.load('chateau', 15.5, 17, 'up');
+    Field.load('chateau', 15.5, 8.6, 'down');
     Field.entities = Field.entities.filter(e => e.kind !== 'enemy');
+    Field.hideParty = true;
     SND.stopMusic(false);
     Field.camLock = true;
     S.x = 16 * 16; S.y = 15 * 16;
-    Field.camX = S.x - SW / 2; Field.camY = S.y - 190;
+    const LOW = S.y - 124, HIGH = S.y - 190;
+    Field.camX = S.x - SW / 2; Field.camY = LOW;
     S.balls = [1, 2, 3, 4, 5, 6, 7].map((n, i) => {
       const a = i / 7 * Math.PI * 2 - Math.PI / 2;
       return { n, x: S.x + Math.cos(a) * 18, y: S.y + Math.sin(a) * 9, gone: false };
     });
     S.active = true; S.prog = 0; S.dark = 0; S.glow = 0;
-    const party = Field.actors;
-    const spots = [[S.x - 30, S.y + 30], [S.x, S.y + 38], [S.x + 30, S.y + 30]];
-    party.forEach((a, i) => { a.x = spots[i][0]; a.y = spots[i][1]; a.dir = 'up'; });
-    Field.history = [];
+    const pil = Field.addEntity({ kind: 'npc', id: 'f_pilaf', sprite: 'pilaf', x: S.x - 32, y: S.y + 4, dir: 'right' });
+    const shu = Field.addEntity({ kind: 'npc', id: 'f_shu', sprite: 'shu', x: S.x - 48, y: S.y - 12, dir: 'right' });
+    const mai = Field.addEntity({ kind: 'npc', id: 'f_mai', sprite: 'mai', x: S.x - 50, y: S.y + 20, dir: 'right' });
     await UI.fadeTo(0, 40);
-    await say('Bulma', 'Voilà... Les sept Boules de Cristal, enfin réunies !');
-    await say('Krilin', 'Elles... elles se mettent à briller !');
+    await say('Pilaf', 'Enfin ! Les sept Boules de Cristal sont à MOI ! Ha ha ha !');
     await Tasks.tween(S, { glow: 1 }, 50);
-    await say('Bulma', 'Sors de ces boules, dragon sacré ! Viens à nous, Shenron, et exauce notre vœu !');
+    await say('Pilaf', 'Sors de ces boules, dragon sacré ! Viens à moi, Shenron, et exauce mon vœu !');
     SND.playMusic('shenron');
     await Tasks.tween(S, { dark: 0.72 }, 60);
     SND.sfx('thunder'); Game.shake = 20;
     UI.fade.color = '#ffffff'; UI.fade.v = 0.8; UI.fadeTo(0, 20).then(() => { UI.fade.color = '#000'; });
     await wait(30);
     SND.sfx('roar');
-    await Tasks.tween(S, { prog: 1 }, 170, 'out');
+    await Promise.all([Tasks.tween(S, { prog: 1 }, 170, 'out'), camPan(HIGH, 120)]);
     SND.sfx('thunder'); Game.shake = 16;
     await wait(40);
     await say('Shenron', 'JE SUIS SHENRON, LE DRAGON SACRÉ. JE PEUX EXAUCER UN VŒU, QUEL QU\'IL SOIT.');
-    await say('Goku', 'Wouaaah ! Un vrai dragon ! Il est géant !');
-    const wishes = ['Une montagne de nourriture !', 'Le petit ami idéal pour Bulma', 'Devenir le plus fort du monde', 'La paix dans le monde'];
-    const r = await UI.ask('Shenron', 'PRONONCEZ VOTRE VŒU !', wishes, { top: true });
-    if (r === 0) await say('Goku', 'Moi je veux... une montagne de nourriture ! Des raviolis, du poisson, des boulettes et des gâteaux !');
-    if (r === 1) await say('Bulma', 'Je veux... le petit ami idéal ! Grand, beau, fort... et un peu timide, pourquoi pas ?');
-    if (r === 2) await say('Krilin', 'Je veux devenir le plus fort du monde ! Plus fort que Goku !');
-    if (r === 3) await say('Goku', 'Euh... La paix dans le monde ! Comme ça, plus personne n\'embêtera les gens !');
-    await say('Shenron', r === 2 ? 'CE VŒU EST TROP FACILE... L\'ENTRAÎNEMENT T\'Y CONDUIRA. MAIS SOIT !' : 'TON VŒU EST EXAUCÉ.');
+    await say('Pilaf', 'Ha ha ha ! Shenron ! Je veux devenir le maître du mon...');
+    await say('Bulma', 'ARRÊTEEEZ !');
+    // l'équipe surgit du château
+    await camPan(LOW, 40);
+    Field.hideParty = false;
+    const spots = [[S.x + 32, S.y + 16], [S.x + 52, S.y], [S.x + 56, S.y + 26]];
+    await Promise.all(Field.actors.map(async (a, i) => {
+      await wait(i * 10);
+      await Field.walkTo(a, spots[i][0], spots[i][1], 2.2);
+      a.dir = 'left';
+    }));
+    Field.history = [];
+    pil.dir = 'right';
+    Field.emote(pil, '!');
+    await say('Pilaf', 'ENCORE VOUS ?! Shu ! Mai ! Arrêtez-les !');
+    await say('Shu', 'Euh... Majesté... Ils ont détruit votre machine. Nous, on n\'a qu\'un pistolet et un shuriken...');
+    await say('Bulma', 'Vite ! Il faut faire un vœu avant lui ! Le premier qui parle sera exaucé !');
+    const wish = await chooseWish();
+    await makeWish(wish, pil);
+    // Shenron repart, les boules s'envolent
+    await camPan(HIGH, 40);
+    await say('Shenron', wish === 'krillin' ? 'LA VRAIE FORCE NE S\'OFFRE PAS... MAIS JE TE DONNE LE COURAGE DE LA CONQUÉRIR.' : 'TON VŒU EST EXAUCÉ.');
     SND.sfx('flash');
     UI.fade.color = '#ffffff'; UI.fade.v = 1; await UI.fadeTo(0, 40); UI.fade.color = '#000';
     await say('Shenron', 'ADIEU !');
     SND.sfx('roar');
     await Tasks.tween(S, { prog: 0 }, 50, 'in');
-    // les boules s'envolent aux quatre coins du monde
     SND.sfx('ball');
     await Promise.all(S.balls.map((b, i) => {
       const a = i / 7 * Math.PI * 2;
       return Tasks.tween(b, { x: b.x + Math.cos(a) * 200, y: b.y - 220 - Math.sin(a) * 40 }, 50, 'in');
     }));
     S.balls.forEach(b => { b.gone = true; });
-    await Tasks.tween(S, { dark: 0 }, 60);
-    const endings = [
-      ['Une pluie de nourriture tombe du ciel sur le château !', 'Goku se régale pendant trois jours entiers, sous l\'œil furieux de Bulma.', 'Bulma : « Mon vœu ! Mon petit ami parfait ! GOKUUU ! »'],
-      ['Au loin, dans le désert, une lumière dorée enveloppe Yamcha...', 'Quelques jours plus tard, il frappe à la porte de Bulma, rouge comme une tomate.', 'Goku : « C\'est quoi, un petit ami ? Ça se mange ? »'],
-      ['Shenron disparaît en souriant. Goku et Krilin se regardent...', 'Et partent s\'entraîner chez Tortue Géniale, pour devenir les plus forts !', 'Le grand tournoi des arts martiaux les attend...'],
-      ['Une douce lumière se répand sur le monde entier.', 'Même l\'empereur Pilaf, dans son château, décide de... faire une sieste.', 'Goku : « Bon ! On repart à l\'aventure ? »'],
-    ][r];
-    for (const e of endings) await say(null, e);
-    await say('Bulma', 'Les Boules de Cristal se sont dispersées... Dans un an, elles redeviendront actives. Une nouvelle aventure commencera !');
-    await say('Goku', 'Génial ! On les cherchera encore ensemble ! Hein, Bulma ? Krilin ?');
+    await Promise.all([Tasks.tween(S, { dark: wish === 'gohan' ? 0.4 : 0 }, 60), camPan(LOW, 50)]);
+    await afterWish(wish, pil, shu, mai);
+    await Tasks.tween(S, { dark: 0 }, 30);
+    Game.setQuest('main', 'done', true);
+    Game.flags.wish = wish;
+    await say('Bulma', 'Les Boules de Cristal se sont dispersées aux quatre coins du monde... Dans un an, elles redeviendront actives.');
+    await say('Goku', 'Génial ! Alors on les cherchera encore ensemble ! Hein, Bulma ?');
+    await say('Bulma', 'Hi hi... On verra, petit singe. On verra !');
     await UI.fadeTo(1, 60);
     S.active = false;
     Field.camLock = false;
-    startCredits(r);
+    const end = endingRank();
+    await epilogue(buildEpilogue(wish, end));
+    startCredits(end);
     await UI.fadeTo(0, 30);
   }
 
+  // Qui fait le vœu ? (les options dépendent des compagnons et des choix passés)
+  async function chooseWish() {
+    const F = Game.flags;
+    while (true) {
+      const who = ['goku', 'bulma', 'krillin', 'yamcha', 'oolong'].filter(id => Game.member(id));
+      const r = await UI.ask('Bulma', 'Qui fait le vœu ?', who.map(id => MEMBERS[id].name));
+      const id = who[r];
+      if (id !== 'goku') {
+        const q = {
+          bulma: ['Bulma', 'Le petit ami idéal ! (le vœu de Bulma)'],
+          krillin: ['Krilin', 'Devenir plus fort ! (le vœu de Krilin)'],
+          yamcha: ['Yamcha', 'Ne plus avoir peur des filles ! (le vœu de Yamcha)'],
+          oolong: ['Oolong', 'Une culotte toute neuve ! (le vœu d\'Oolong)'],
+        }[id];
+        const c = await UI.ask(q[0], q[1], ['Faire ce vœu', 'Choisir quelqu\'un d\'autre'], { cancel: 1 });
+        if (c === 0) return id;
+        continue;
+      }
+      const opts = [];
+      if (F.grave) opts.push(['gohan', 'Revoir Grand-père Gohan']);
+      if (F.castleDestroyed) opts.push(['chateau', 'Rebâtir le château de Gyumao']);
+      opts.push(['food', 'Une montagne de nourriture !']);
+      opts.push(['paix', 'La paix dans le monde']);
+      opts.push(['back', 'Laisser parler quelqu\'un d\'autre']);
+      const c = await UI.ask('Goku', 'Mon vœu, c\'est...', opts.map(o => o[1]), { cancel: opts.length - 1 });
+      if (opts[c][0] !== 'back') return opts[c][0];
+    }
+  }
+  async function makeWish(w, pil) {
+    const lines = {
+      gohan: ['Goku', 'Shenron ! Je veux revoir mon grand-père Gohan ! Juste une fois !'],
+      chateau: ['Goku', 'Shenron ! Je veux que le château de Gyumao soit reconstruit ! J\'ai fait une grosse bêtise...'],
+      food: ['Goku', 'Shenron ! Je veux une montagne de nourriture ! Des raviolis, du poisson, des brochettes et des gâteaux !'],
+      paix: ['Goku', 'Shenron ! Je veux la paix dans le monde ! Comme ça, plus personne n\'embêtera les gens !'],
+      bulma: ['Bulma', 'Shenron ! Je veux le petit ami idéal ! Beau, fort, courageux... et un peu timide, pourquoi pas ?'],
+      krillin: ['Krilin', 'Shenron ! Je veux devenir plus fort... assez fort pour protéger mes amis !'],
+      yamcha: ['Yamcha', 'Shenron ! Je veux... ne plus avoir peur des filles !'],
+      oolong: ['Oolong', 'Shenron ! Je veux... UNE CULOTTE TOUTE NEUVE !'],
+    }[w];
+    await say(lines[0], lines[1]);
+    Field.emote(pil, '!');
+    if (w === 'oolong') { await say('Bulma', 'OOLONG ?!'); await say('Pilaf', 'Une... une culotte ?!'); }
+    else await say('Pilaf', 'NOOON ! Mon vœu ! C\'était MON vœu !');
+    if (w === 'gohan') {
+      await camPan(Field.camY - 66, 30);
+      await say('Shenron', 'LE VIEIL HOMME A QUITTÉ CE MONDE IL Y A BIEN LONGTEMPS. JE NE PEUX PAS LE RAMENER À LA VIE...');
+      await say('Shenron', 'MAIS SON ÂME POURRA TE PARLER... LE TEMPS D\'UN SOUFFLE DE VENT.');
+    }
+    if (w === 'chateau') Game.addKarma(2);
+  }
+  async function afterWish(w, pil, shu, mai) {
+    const goku = Field.actors[0];
+    if (w === 'gohan') {
+      SND.playMusic('sad');
+      const g = Field.addEntity({ kind: 'npc', id: 'f_gohan', sprite: 'gohan', x: Shenron.x, y: Shenron.y + 6, dir: 'right', ghost: 0, solid: false });
+      SND.sfx('heal');
+      await Tasks.tween(g, { ghost: 1 }, 60);
+      await Field.walkTo(goku, Shenron.x + 22, Shenron.y + 8, 1);
+      goku.dir = 'left';
+      await say('Goku', 'G-Grand-père ?!');
+      await say('Grand-père Gohan', 'Goku... Mon petit Goku. Comme tu as grandi...');
+      if (Game.flags.voie === 'force') await say('Grand-père Gohan', 'Tu es devenu si fort ! Mais souviens-toi de ta promesse... et du but de ta force. Elle doit servir à protéger.');
+      else await say('Grand-père Gohan', 'Tu as tenu ta promesse. Tu protèges tes amis, et tes amis te protègent. Je suis si fier de toi.');
+      await say('Grand-père Gohan', 'Tu as gardé ma boule à quatre étoiles... Elle te mènera toujours vers des amis précieux.');
+      await say('Grand-père Gohan', 'Ah, et surtout... ne regarde jamais la pleine lune, d\'accord ?');
+      await say('Goku', 'Promis, Grand-père ! ... Pourquoi ?');
+      await say('Grand-père Gohan', 'Ho ho ho... Mesdemoiselles, messieurs, prenez bien soin de mon petit-fils.');
+      await say('Bulma', 'On vous le promet, Grand-père Gohan.');
+      await Tasks.tween(g, { ghost: 0 }, 70);
+      g.gone = true;
+      await say('Goku', '... Merci, Shenron.');
+      SND.playMusic('castle');
+    } else if (w === 'food') {
+      SND.sfx('item');
+      await say(null, 'Une pluie de raviolis, de poissons grillés et de gâteaux tombe sur la cour du château !');
+      await say('Goku', 'Miam ! Itadakimasu !');
+      await say('Bulma', 'Goku... MON VŒU ! Mon petit ami parfait ! Grrr...');
+    } else if (w === 'chateau') {
+      await say(null, 'Au loin, vers le Mont Frypan, une lumière dorée enveloppe les ruines du château...');
+      await say('Goku', 'Ouf. Gyumao et Chichi auront de nouveau une maison !');
+      await say('Bulma', 'C\'est bien, Goku. Tu as réparé ta bêtise.');
+      Game.addAff('bulma', 1, true);
+    } else if (w === 'paix') {
+      await say(null, 'Une douce lumière se répand sur la cour, puis sur le désert, puis sur le monde entier...');
+      await say('Pilaf', 'Je... je me sens tout calme... J\'ai envie de... faire une sieste...');
+    } else if (w === 'bulma') {
+      if (Game.member('yamcha')) {
+        await say('Yamcha', 'Hein ? Pourquoi est-ce que je brille tout à coup ?!');
+        await say('Bulma', 'Yamcha... ? Oh. Ohhh ! Hi hi !');
+        await say('Yamcha', 'J-je... euh... Bulma, tu veux... enfin... boire un thé un jour ?');
+      } else {
+        await say('Bulma', 'Hmm... Il ne se passe rien ? Bon. Mon petit ami idéal doit être en chemin !');
+        await say('Goku', 'C\'est quoi, un petit ami ? Ça se mange ?');
+      }
+    } else if (w === 'krillin') {
+      await say('Krilin', 'Je... je sens une énergie nouvelle ! Goku, la prochaine fois, je te bats à coup sûr !');
+      await say('Goku', 'Hé hé ! On verra ça !');
+    } else if (w === 'yamcha') {
+      await say('Yamcha', 'Je n\'ai plus peur ! Bulma, tu es... tu es... très j-jolie ! ... J\'ai réussi ! Puar, j\'ai réussi !');
+      await say('Bulma', 'Hi hi... Merci, Yamcha !');
+    } else if (w === 'oolong') {
+      SND.sfx('item');
+      await say(null, 'Une culotte toute neuve tombe du ciel... et atterrit sur la tête d\'Oolong.');
+      await say('Oolong', 'Hé hé ! Elle est toute douce !');
+      await say('Bulma', 'Le vœu le plus important du monde... gaspillé pour une culotte. Mais au moins, Pilaf n\'a rien eu !');
+    }
+    await say('Pilaf', 'Grrr... Vous n\'avez pas fini d\'entendre parler de l\'empereur Pilaf ! Shu ! Mai ! On se retire !');
+    await Promise.all([pil, shu, mai].map(e => Field.walkTo(e, e.x - 10, e.y + 150, 2.4)));
+    pil.gone = shu.gone = mai.gone = true;
+  }
+
+  function endingRank() {
+    const k = Game.karma;
+    if (k >= 7) return { title: 'Fin A : Le Cœur Pur', text: 'Goku remonte sur Kinto\'un. Seul un cœur pur peut voler sur le nuage magique... et il n\'a jamais été aussi rapide.' };
+    if (k >= 4) return { title: 'Fin B : Le Petit Héros', text: 'Goku remonte sur Kinto\'un. Il a fait quelques bêtises, mais tout le monde, sur son chemin, se souviendra de lui.' };
+    return { title: 'Fin C : Le Garnement', text: 'Goku remonte sur Kinto\'un. Le nuage hésite un instant... puis l\'emporte quand même. Il a encore beaucoup à apprendre.' };
+  }
+  // Épilogue : chaque personnage connaît un destin différent selon les choix du joueur.
+  function buildEpilogue(w, end) {
+    const F = Game.flags, A = Game.aff, has = id => !!Game.member(id), q = id => Game.quest(id);
+    const out = [];
+    const wishText = {
+      gohan: [['goku', 'gohan'], 'Goku a revu son grand-père, le temps d\'un souffle de vent. Il garde la boule à quatre étoiles tout contre son cœur.'],
+      chateau: [['chichi'], 'Le château de Gyumao renaît de ses cendres, plus beau qu\'avant. Gyumao pardonne tout et organise un festin de sept jours.'],
+      food: [['goku'], 'Goku se régale pendant trois jours entiers. Il garde même un gâteau pour Grand-père Gohan, sur l\'autel de la maison.'],
+      paix: [['pilaf'], 'Pendant toute une année, le monde vit en paix. Même l\'empereur Pilaf passe ses journées à faire la sieste.'],
+      bulma: has('yamcha') ? [['bulma', 'yamcha'], 'Le vœu de Bulma a fonctionné... à sa manière. Yamcha l\'invite à boire un thé chaque dimanche, rouge comme une tomate.'] : [['bulma'], 'Bulma attend toujours son petit ami idéal. Dans le désert, un certain bandit éternue sans savoir pourquoi...'],
+      krillin: [['krillin'], 'De retour au temple d\'Orin, Krilin n\'a plus peur de personne. Les moines qui se moquaient de lui l\'appellent désormais « Maître Krilin ».'],
+      yamcha: [['yamcha'], 'Yamcha n\'a plus peur des filles ! ... Sauf de Bulma, quand elle se met en colère.'],
+      oolong: [['oolong'], 'Oolong porte fièrement sa culotte neuve. On raconte que le monde a été sauvé... grâce à une culotte.'],
+    }[w];
+    out.push({ title: 'Le vœu', chars: wishText[0], text: wishText[1] });
+    const b = A.bulma || 0;
+    out.push({ title: 'Bulma', chars: ['bulma'], text: b >= 4 ? 'Bulma rentre à la Capitale de l\'Ouest. « Reviens me voir quand tu veux, Goku. Tu es mon meilleur ami, petit singe ! »'
+      : b >= 1 ? 'Bulma rentre à la Capitale de l\'Ouest, son radar sous le bras. Elle a déjà hâte de repartir à l\'aventure.'
+        : 'Bulma rentre chez elle en ronchonnant : « Plus jamais je ne voyage avec un garçon aussi malpoli ! » ... Mais elle reviendra.' });
+    if (has('krillin')) out.push({ title: 'Krilin', chars: ['krillin', 'roshi'], text: (A.krillin || 0) >= 3 ? 'Krilin et Goku sont devenus les meilleurs amis du monde. Ils s\'entraînent chez Tortue Géniale pour le grand tournoi des arts martiaux.' : 'Krilin repart s\'entraîner chez Tortue Géniale. « La prochaine fois, Goku, c\'est moi qui gagne ! »' });
+    if (F.yamchaJoined) out.push({ title: 'Yamcha et Puar', chars: ['yamcha'], mon: 'puar', text: 'Yamcha et Puar s\'installent à la Capitale de l\'Ouest, pour être près de Bulma... et apprendre enfin à lui parler.' });
+    else if (F.met_yamcha) out.push({ title: 'Yamcha et Puar', chars: ['yamcha'], mon: 'puar', text: 'Yamcha et Puar errent dans le désert. Le loup solitaire pense souvent à une certaine fille aux cheveux bleus.' });
+    if (F.oolongJoined) out.push({ title: 'Oolong', chars: ['oolong'], text: 'Oolong suit Bulma à la Capitale de l\'Ouest. Il a promis d\'être sage... et il tient parole. Enfin, presque.' });
+    else if (F.oolongJailed) out.push({ title: 'Oolong', chars: ['oolong'], text: 'Oolong est resté au château de Pilaf, où il cuisine des gâteaux pour Shu et Mai. Il dit qu\'il ne s\'est jamais aussi bien porté.' });
+    if (F.fireOut || w === 'chateau') out.push({ title: 'Chichi et Gyumao', chars: ['chichi'], mon: 'gyumao', text: F.chichiPromise ? 'Chichi n\'a pas oublié la promesse de Goku. Chaque soir, elle s\'entraîne en répétant : « Promis-promis ! » Un jour, elle viendra le chercher...' : 'Le château de Gyumao est sauvé. Chaque année, le roi organise un grand festin en l\'honneur des jeunes héros.' });
+    else if (F.castleDestroyed) out.push({ title: 'Chichi et Gyumao', chars: ['chichi'], mon: 'gyumao', text: 'Gyumao et Chichi vivent sous une tente au pied du Mont Frypan. Chichi jure de ne jamais pardonner à Goku... enfin, peut-être un jour.' });
+    const others = [];
+    if (F.bearSpared) others.push('L\'Ours Brigand a ouvert un petit restaurant dans la forêt. Son poisson grillé est réputé.');
+    else if (F.bearChased) others.push('L\'Ours Brigand rôde encore dans les montagnes, rancunier.');
+    if (q('grandmere') === 'done') others.push('La grand-mère du village d\'Aru danse à nouveau à chaque fête.');
+    if (q('marchand') === 'done') others.push('Le marchand raconte vos exploits sur toutes les routes.');
+    if (q('boussole') === 'done') others.push('Le nomade du désert ne s\'est plus jamais perdu.');
+    if (others.length) out.push({ title: 'Et les autres...', mon: F.bearSpared || F.bearChased ? 'ours' : null, text: others.slice(0, 3).join(' ') });
+    out.push({ title: 'L\'empereur Pilaf', chars: ['shu', 'pilaf', 'mai'], text: 'Dans son château, l\'empereur Pilaf prépare déjà sa revanche. « Dans un an, les Boules de Cristal seront à moi ! »' });
+    const nq = ['tortue', 'grandmere', 'marchand', 'boussole', 'gyumao'].filter(id => q(id) === 'done').length;
+    out.push({ title: end.title, chars: ['goku'], cloud: true, text: end.text, foot: 'Quêtes accomplies : ' + nq + '/5   —   Karma : ' + Game.karma });
+    return out;
+  }
+  let epi = null;
+  function epilogue(slides) {
+    return new Promise(res => { epi = { slides, i: 0, t: 0, res }; Game.mode = 'epilogue'; SND.playMusic(Game.flags.wish === 'gohan' ? 'sad' : 'camp'); UI.fade.v = 0; });
+  }
+  function updateEpilogue() {
+    epi.t++;
+    if (epi.t > 40 && (Input.pressed('a') || Input.pressed('b'))) {
+      SND.sfx('cursor');
+      epi.i++; epi.t = 0;
+      if (epi.i >= epi.slides.length) { const r = epi.res; epi.done = true; r(); }
+    }
+  }
+  function drawEpilogue() {
+    const t = Game.frame;
+    drawSky(t, '#000010', '#141048', '#3a2060');
+    if (epi.done) return;
+    const s = epi.slides[epi.i];
+    ctx.globalAlpha = Math.min(1, epi.t / 24);
+    FONT.drawCentered(ctx, epi.i === epi.slides.length - 1 ? s.title : 'Épilogue — ' + s.title, 128, 18, UI.YEL);
+    ctx.fillStyle = '#c0a040'; ctx.fillRect(48, 32, 160, 1);
+    const figs = [];
+    for (const c of s.chars || []) figs.push({ img: GFX.char(c).down[0], w: 48, h: 64 });
+    if (s.mon) { const m = GFX.monster(s.mon); const k = m.h > 30 ? 1.5 : 2; figs.push({ img: m.img, w: m.w * k, h: m.h * k }); }
+    const gap = 8, total = figs.reduce((a, f) => a + f.w, 0) + gap * Math.max(0, figs.length - 1);
+    let x = 128 - total / 2;
+    const bob = Math.round(Math.sin(t * 0.06) * 2);
+    for (const f of figs) {
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(x + f.w / 2, 116, f.w * 0.3, 4, 0, 0, 7); ctx.fill();
+      ctx.drawImage(f.img, Math.round(x), Math.round(116 - f.h + (s.cloud ? bob - 10 : 0)), f.w, f.h);
+      x += f.w + gap;
+    }
+    if (s.cloud) ctx.drawImage(kintoun(), 128 - 34, 100 + bob, 68, 36);
+    FONT.wrap(s.text, 224).forEach((l, k) => FONT.drawCentered(ctx, l, 128, 134 + k * 13, '#e8e8f8'));
+    if (s.foot) FONT.drawCentered(ctx, s.foot, 128, 196, '#a0a8d8');
+    ctx.globalAlpha = 1;
+    if (epi.t > 40 && Math.floor(t / 15) % 2) FONT.draw(ctx, '▼', 238, 208, '#fff');
+  }
+
   // ---------------- Crédits ----------------
-  function startCredits(r) {
+  function startCredits(end) {
     Game.mode = 'ending';
     SND.playMusic('title');
     credits = {
       y: SH + 10, lines: [
         ['DRAGON BALL', 'big'], ['La Quête des 7 Boules', 'sub'], '', '',
-        ['~ FIN ~', 'yel'], '', '',
+        ['~ ' + end.title + ' ~', 'yel'], '', '',
         'Un petit RPG de fan non officiel,', 'hommage à Dragon Ball et Chrono Trigger.', '', '',
-        ['Personnages', 'yel'], 'Son Goku', 'Bulma', 'Krilin', 'Tortue Géniale', 'Oolong', 'Yamcha et Puar', 'L\'empereur Pilaf, Shu et Mai', 'Shenron', '', '',
+        ['Personnages', 'yel'], 'Son Goku', 'Bulma', 'Krilin', 'Tortue Géniale', 'Yamcha et Puar', 'Oolong', 'Chichi et le roi Gyumao', 'Grand-père Gohan', 'L\'empereur Pilaf, Shu et Mai', 'Shenron', '', '',
         ['Programmation, graphismes, musique', 'yel'], 'Pixel art, code et chiptune', 'créés avec Claude', '', '',
         ['Dragon Ball', 'yel'], '© Akira Toriyama / Bird Studio', 'Shueisha, Toei Animation', 'Œuvre de fan sans but commercial.', '', '',
-        ['Merci d\'avoir joué !', 'yel'], '', '', '', 'Appuie sur Z pour revenir au titre',
+        ['Merci d\'avoir joué !', 'yel'], 'As-tu découvert toutes les fins ?', '', '', 'Appuie sur Z pour revenir au titre',
       ],
     };
   }
@@ -319,7 +527,7 @@ const Main = (() => {
     }
     credits.end = y;
     const cx = ((t * 0.6) % (SW + 120)) - 60;
-    ctx.drawImage(GFX.char('goku').right[0], Math.round(cx + 9), 190 - 15 + Math.round(Math.sin(t * 0.08) * 3));
+    ctx.drawImage(GFX.char('goku').right[0], Math.round(cx + 5), 190 - 22 + Math.round(Math.sin(t * 0.08) * 3));
     ctx.drawImage(kintoun(), Math.round(cx), 190 + Math.round(Math.sin(t * 0.08) * 3));
   }
   function updateCredits() {
@@ -343,6 +551,7 @@ const Main = (() => {
         break;
       }
       case 'gameover': updateGameOver(); break;
+      case 'epilogue': updateEpilogue(); break;
       case 'ending': updateCredits(); break;
     }
   }
@@ -355,6 +564,7 @@ const Main = (() => {
         if (Field.battle) Battle.drawUI();
         break;
       case 'gameover': drawGameOver(); break;
+      case 'epilogue': drawEpilogue(); break;
       case 'ending': drawCredits(); break;
     }
     UI.draw();

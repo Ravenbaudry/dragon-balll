@@ -67,43 +67,71 @@ const Tasks = {
 const wait = n => Tasks.wait(n);
 
 // ---------------- État de la partie ----------------
+const COMPANIONS = ['bulma', 'krillin', 'yamcha', 'oolong', 'chichi'];
 const Game = {
   mode: 'title', frame: 0, playFrames: 0,
-  party: [], reserve: [], items: {}, zeni: 0, balls: [], flags: {},
+  party: [], reserve: [], items: {}, zeni: 0, balls: [], flags: {}, aff: {}, karma: 0, quests: {},
   mapId: null, spawn: null, shake: 0,
   newGame() {
     this.party = [makeMember('goku', 1)];
+    this.reserve = [];
     this.items = { tonique: 3 };
     this.zeni = 50; this.balls = []; this.flags = {}; this.playFrames = 0;
+    this.aff = {}; for (const c of COMPANIONS) this.aff[c] = 0;
+    this.karma = 0; this.quests = {};
   },
   addItem(id, n = 1) { this.items[id] = (this.items[id] || 0) + n; },
   useItemStock(id) { if (this.items[id] > 0) { this.items[id]--; if (!this.items[id]) delete this.items[id]; return true; } return false; },
-  member(id) { return this.party.find(m => m.id === id); },
+  member(id) { return this.party.find(m => m.id === id) || this.reserve.find(m => m.id === id); },
+  inParty(id) { return this.party.some(m => m.id === id); },
+  // Ajoute un compagnon : dans l'équipe active s'il reste de la place, sinon en réserve.
   addMember(id) {
-    if (this.member(id)) return;
-    const lv = Math.max(1, ...this.party.map(m => m.lv));
+    if (this.member(id)) return 'party';
+    const lv = Math.max(1, ...this.party.concat(this.reserve).map(m => m.lv));
     const m = makeMember(id, lv);
-    this.party.push(m);
+    if (this.party.length < 3) { this.party.push(m); return 'party'; }
+    this.reserve.push(m); return 'reserve';
   },
+  removeMember(id) { this.party = this.party.filter(m => m.id !== id); this.reserve = this.reserve.filter(m => m.id !== id); },
+  allMembers() { return this.party.concat(this.reserve); },
   hasBall(n) { return this.balls.includes(n); },
   giveBall(n) { if (!this.balls.includes(n)) this.balls.push(n); this.balls.sort(); },
-  healAll() { for (const m of this.party) { m.hp = m.maxhp; m.ki = m.maxki; } },
+  takeBalls(list) { this.balls = this.balls.filter(n => !list.includes(n)); },
+  healAll() { for (const m of this.allMembers()) { m.hp = m.maxhp; m.ki = m.maxki; } },
+  addAff(id, n, quiet) {
+    this.aff[id] = (this.aff[id] || 0) + n;
+    if (!quiet && typeof UI !== 'undefined') {
+      const name = MEMBERS[id] ? MEMBERS[id].name : (id === 'chichi' ? 'Chichi' : id);
+      UI.notify(n > 0 ? '♥ ' + name + ' apprécie' : name + ' est déçu' + (id === 'bulma' || id === 'chichi' ? 'e' : '') + '...', 90);
+    }
+  },
+  addKarma(n) { this.karma += n; },
+  quest(id) { return this.quests[id]; },
+  setQuest(id, state, quiet) {
+    const was = this.quests[id];
+    this.quests[id] = state;
+    if (!quiet && was !== state && typeof UI !== 'undefined' && QUESTS[id]) {
+      UI.notify((state === 'done' ? 'Quête terminée : ' : was ? 'Journal : ' : 'Nouvelle quête : ') + QUESTS[id].title, 120);
+    }
+  },
   save() {
     const data = {
-      v: 1, party: this.party, items: this.items, zeni: this.zeni, balls: this.balls, flags: this.flags,
+      v: 2, party: this.party, reserve: this.reserve, items: this.items, zeni: this.zeni, balls: this.balls, flags: this.flags,
+      aff: this.aff, karma: this.karma, quests: this.quests,
       mapId: Field.mapId, x: Field.leader().x, y: Field.leader().y, dir: Field.leader().dir, playFrames: this.playFrames,
     };
     try { localStorage.setItem('dbq_save', JSON.stringify(data)); return true; } catch (e) { return false; }
   },
   loadData() {
-    try { const s = localStorage.getItem('dbq_save'); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+    try { const s = localStorage.getItem('dbq_save'); const d = s ? JSON.parse(s) : null; return d && d.v === 2 ? d : null; } catch (e) { return null; }
   },
   hasSave() { return !!this.loadData(); },
   load() {
     const d = this.loadData();
     if (!d) return false;
-    this.party = d.party; this.items = d.items; this.zeni = d.zeni; this.balls = d.balls; this.flags = d.flags; this.playFrames = d.playFrames || 0;
-    for (const m of this.party) refreshTechs(m);
+    this.party = d.party; this.reserve = d.reserve || []; this.items = d.items; this.zeni = d.zeni; this.balls = d.balls; this.flags = d.flags;
+    this.aff = d.aff || {}; this.karma = d.karma || 0; this.quests = d.quests || {}; this.playFrames = d.playFrames || 0;
+    for (const m of this.allMembers()) refreshTechs(m);
     this.spawn = { mapId: d.mapId, x: d.x, y: d.y, dir: d.dir };
     return true;
   },

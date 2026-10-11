@@ -110,6 +110,27 @@ const SND = (() => {
         { w: 'p12', v: 0.045, d: 2, n: 'A3 E4 A4 C5 E5 C5 A4 E4 D4 F4 A4 D5 F5 D5 A4 F4 F3 C4 F4 A4 C5 A4 F4 C4 E3 B3 E4 G#4 B4 G#4 E4 B3 A3 E4 A4 C5 E5 C5 A4 E4 D4 F4 A4 D5 F5 D5 A4 F4 C4 E4 G4 C5 E5 C5 G4 E4 E3 B3 E4 G#4 B4 G#4 E4 B3' },
       ]
     },
+    camp: {
+      bpm: 84, ch: [
+        { w: 'p25', v: 0.13, d: 2, n: 'E5:4 G5:4 A5:6 G5:2 E5:4 D5:4 C5:8 D5:4 E5:4 G5:4 E5:4 D5:12 -:4 E5:4 G5:4 A5:6 C6:2 B5:4 A5:4 G5:8 A5:4 G5:4 E5:4 D5:4 C5:12 -:4' },
+        { w: 'tri', v: 0.28, d: 4, n: 'C3 G3 E3 G3 A2 E3 C3 E3 F2 C3 A2 C3 G2 D3 B2 D3 C3 G3 E3 G3 E2 B2 G2 B2 F2 C3 G2 D3 C3 G3 C3:8' },
+        { w: 'p12', v: 0.045, d: 2, n: 'G4 C5 E5 C5 G4 C5 E5 C5 A4 C5 E5 C5 A4 C5 E5 C5 A4 C5 F5 C5 A4 C5 F5 C5 B4 D5 G5 D5 B4 D5 G5 D5 G4 C5 E5 C5 G4 C5 E5 C5 B4 E5 G5 E5 B4 E5 G5 E5 A4 C5 F5 C5 B4 D5 G5 D5 G4 C5 E5 C5 G4 C5 E5 C5' },
+      ]
+    },
+    volcano: {
+      bpm: 132, ch: [
+        { w: 'p25', v: 0.14, d: 2, n: 'E5 F5 E5 B4 E5:4 G5:4 F5 E5 D5 E5 C5:8 E5 F5 G5 A5 B5:4 A5:4 G5 F5 E5 F5 E5:8 B5:4 C6:4 B5 A5 G5:4 A5:4 G5 F5 E5:8 E5 G5 F5 E5 D5 F5 E5 D5 E5:12 -:4' },
+        { w: 'tri', v: 0.32, d: 2, n: 'E2 E2 E3 E2 E2 E2 F2 E2 C2 C2 C3 C2 D2 D2 E2 D2 E2 E2 E3 E2 E2 E2 F2 E2 C2 C2 C3 C2 B1 B1 B2 B1 E2 E2 E3 E2 G2 G2 E2 G2 F2 F2 F3 F2 C2 C2 C3 C2 D2 D2 D3 D2 F2 F2 F3 F2 E2 E2 E3 E2 E2 B1 E2 E2' },
+        { w: 'drum', v: 0.4, d: 2, n: 'k - h k s - h - '.repeat(7) + 'k k s k s s s s' },
+      ]
+    },
+    sad: {
+      bpm: 70, ch: [
+        { w: 'tri', v: 0.24, d: 4, n: 'A4 C5 E5:6 D5:2 C5 B4 A4:8 F4 A4 C5:6 B4:2 A4 G#4 E4:8 A4 C5 E5 A5 G5 F5 E5:8 D5 C5 B4 G#4 A4:16' },
+        { w: 'tri', v: 0.26, d: 8, n: 'A2 E2 A2 E2 F2 C3 E2 B2 A2 E3 C3 G2 D3 E2 A2:16' },
+        { w: 'p12', v: 0.04, d: 2, n: 'A3 E4 A4 C5 E5 C5 A4 E4 A3 E4 A4 C5 E5 C5 A4 E4 F3 C4 F4 A4 C5 A4 F4 C4 E3 B3 E4 G#4 B4 G#4 E4 B3 A3 E4 A4 C5 E5 C5 A4 E4 C4 E4 G4 C5 E5 C5 G4 E4 D4 F4 A4 D5 E4 G#4 B4 E5 A3 E4 A4 C5 A4:8' },
+      ]
+    },
     gameover: {
       bpm: 80, loop: false, ch: [
         { w: 'p25', v: 0.14, d: 4, n: 'A4 G4 F4 E4:12 -:8' },

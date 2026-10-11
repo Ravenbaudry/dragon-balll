@@ -82,7 +82,7 @@ const Battle = (() => {
   }
   function pop(c, str, col = '#fff') { B.pops.push({ x: c.x, y: c.y - spriteH(c) - 4, str: String(str), col, t: 0 }); }
   function spriteH(c) {
-    if (c.side === 'p' || c.d.char) return 24;
+    if (c.side === 'p' || c.d.char) return 30;
     return GFX.monster(c.d.spr).h + (c.d.fly ? 8 : 0);
   }
   function center(c) { return [c.x, c.y - spriteH(c) / 2 - c.z]; }
@@ -212,6 +212,17 @@ const Battle = (() => {
         ctx.fillStyle = '#f0c040'; ctx.fillRect(Math.round(x2) - 1, Math.round(y2) - 1, 3, 3);
         return t < life;
       }
+      case 'smoke': case 'cloud': {
+        const life = f.life || 30, p = t / life;
+        ctx.globalAlpha = Math.max(0, 1 - p);
+        for (let i = 0; i < 7; i++) {
+          const a = i / 7 * Math.PI * 2 + p * 2, r = 3 + p * (f.type === 'cloud' ? 12 : 14);
+          ctx.fillStyle = f.type === 'cloud' ? (i % 2 ? '#a8d870' : '#78a848') : (i % 2 ? '#e8e8f0' : '#b8b8c8');
+          ctx.beginPath(); ctx.arc(f.x - cx + Math.cos(a) * r, f.y - cy + Math.sin(a) * r * 0.7, 4 + p * 4, 0, 7); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        return t < life;
+      }
       case 'text': {
         const life = f.life || 60;
         const y = f.y - cy - Math.min(10, t * 0.5);
@@ -227,7 +238,7 @@ const Battle = (() => {
   async function melee(a, t, onHit, opts = {}) {
     const sx = a.x, sy = a.y;
     const dir = t.x > a.x ? 1 : -1;
-    const tw = t.side === 'e' && !t.d.char ? GFX.monster(t.d.spr).w / 2 : 6;
+    const tw = t.side === 'e' && !t.d.char ? GFX.monster(t.d.spr).w / 2 : 8;
     a.walking = true;
     await Tasks.tween(a, { x: t.x - dir * (tw + 10), y: t.y + 1 }, opts.fast ? 8 : 12, 'inOut');
     a.walking = false; a.pose = 'attack';
@@ -382,6 +393,62 @@ const Battle = (() => {
         a.pose = null;
         break;
       }
+      case 'strike': {
+        const t = targets[0];
+        await melee(a, t, async () => {
+          fx('spark', { x: center(t)[0], y: center(t)[1] });
+          await physicalHit(a, t, T.pow, { big: true });
+        }, { hold: 12, fast: true });
+        break;
+      }
+      case 'orb': {
+        const t = targets[0];
+        a.pose = 'attack';
+        SND.sfx('charge');
+        fx('charge', { x: a.x + 8, y: a.y - 16, life: 30, c: '#ffe080' });
+        await wait(30);
+        SND.sfx('blast');
+        const [tx, ty] = center(t);
+        fx('orb', { x1: a.x + 8, y1: a.y - 16, x2: tx, y2: ty, life: 22, arc: 40, r: 6, c: '#ffe080' });
+        await wait(22);
+        fx('boom', { x: tx, y: ty, r: 18 });
+        damage(t, kiDmg(a, t, T.pow), { big: true });
+        await wait(24);
+        a.pose = null;
+        break;
+      }
+      case 'transfo': {
+        const t = targets[0];
+        const form = pick(['Taureau', 'Chauve-souris', 'Missile', 'Robot']);
+        fx('smoke', { x: a.x, y: a.y - 14, life: 30 });
+        SND.sfx('door');
+        await wait(16);
+        message('Transformation : ' + form + ' !', 70);
+        if (form === 'Taureau') { await melee(a, t, () => physicalHit(a, t, 2.6, { big: true }), { hold: 10 }); }
+        else if (form === 'Missile') {
+          for (const e of livingEnemies()) { const [x, y] = center(e); fx('orb', { x1: a.x, y1: a.y - 16, x2: x, y2: y, life: 16, r: 3, c: '#c0c0d0' }); }
+          await wait(16); SND.sfx('bighit'); Game.shake = 8;
+          for (const e of livingEnemies()) { const [x, y] = center(e); fx('boom', { x, y, r: 12 }); damage(e, kiDmg(a, e, 1.4)); }
+          await wait(20);
+        } else if (form === 'Chauve-souris') {
+          await melee(a, t, async () => { await physicalHit(a, t, 1.2); if (!t.dead && t.hp > 0) { t.stun = 200; pop(t, 'Sonné', '#ffe060'); } }, { hold: 10, fast: true });
+        } else {
+          for (const p of livingParty()) { fx('sparkle', { x: p.x, y: p.y, life: 30, c: '#80c8ff' }); heal(p, Math.round(a.mag * 1.2 + 20)); }
+          SND.sfx('heal'); await wait(30);
+        }
+        fx('smoke', { x: a.x, y: a.y - 14, life: 24 });
+        break;
+      }
+      case 'gas': {
+        a.pose = 'attack';
+        SND.sfx('miss');
+        for (const t of targets) { const [x, y] = center(t); fx('cloud', { x, y, life: 50 }); }
+        await wait(24);
+        for (const t of targets) { damage(t, kiDmg(a, t, T.pow)); if (!t.dead && t.hp > 0 && Math.random() < 0.6) { t.stun = T.dur; pop(t, 'Beurk !', '#a0e060'); } }
+        await wait(30);
+        a.pose = null;
+        break;
+      }
       case 'disc': {
         const t = targets[0];
         a.pose = 'attack';
@@ -444,6 +511,39 @@ const Battle = (() => {
       for (const t of targets) { damage(t, Math.round((kiDmg(goku, t, 1) + kiDmg(krillin, t, 1)) * d.pow / 2 * 1.15), { big: true }); await wait(4); }
       await wait(36);
       goku.pose = null; krillin.pose = null;
+    } else if (d.anim === 'dualStrike') {
+      const homes = actors.map(c => [c.x, c.y]);
+      for (const t of targets) {
+        for (const c of actors) {
+          if (t.dead || t.hp <= 0) break;
+          c.walking = true;
+          await Tasks.tween(c, { x: t.x - 18 + (c === a2 ? 6 : 0), y: t.y + (c === a2 ? 4 : -2) }, 7);
+          c.walking = false; c.pose = 'attack';
+          SND.sfx('swing');
+          damage(t, Math.round((physDmg(a1, t, 1) + physDmg(a2, t, 1)) * d.pow / 4 * rand(0.95, 1.05)), { big: true });
+          await wait(6);
+          c.pose = null;
+        }
+      }
+      await Promise.all(actors.map((c, i) => { c.walking = true; return Tasks.tween(c, { x: homes[i][0], y: homes[i][1] }, 12).then(() => { c.walking = false; }); }));
+    } else if (d.anim === 'dualBlast') {
+      for (const c of actors) { c.pose = 'attack'; fx('charge', { x: c.x + 8, y: c.y - 14, life: 40, c: '#ffd080' }); }
+      SND.sfx('charge');
+      await wait(40);
+      SND.sfx('beam');
+      for (const t of targets) for (const c of actors) { const [x, y] = center(t); fx('orb', { x1: c.x + 8, y1: c.y - 14, x2: x, y2: y, life: 14, r: 4, c: '#ffe8a0' }); }
+      await wait(14);
+      SND.sfx('bighit'); Game.shake = 12;
+      for (const t of targets) {
+        const [x, y] = center(t);
+        fx('boom', { x, y, r: 20, life: 28 });
+        const n = d.kind === 'ki2' ? (kiDmg(a1, t, 1) + kiDmg(a2, t, 1)) : (physDmg(a1, t, 1) + kiDmg(a2, t, 1));
+        damage(t, Math.round(n * d.pow / 2 * 1.1), { big: true });
+        if (d.kind === 'kistun' && !t.dead && t.hp > 0) { t.stun = d.dur || 160; pop(t, 'Sonné', '#ffe060'); }
+        await wait(3);
+      }
+      await wait(28);
+      for (const c of actors) c.pose = null;
     } else if (d.anim === 'dualFlash') {
       krillin.pose = 'attack';
       await wait(10);
@@ -587,16 +687,28 @@ const Battle = (() => {
         for (const t of learned) await UI.say(null, m.name + ' apprend la technique « ' + TECHS[t].name + ' » !');
         for (const d of DUALS) {
           if (!d.members.includes(m.id) || !d.members.every(id => Game.member(id))) continue;
+          if (!d.members.every(id => Game.member(id))) continue;
           const ok = d.req.every((r, i) => Game.member(d.members[i]).techs.includes(r));
           const key = 'dual_' + d.id;
           if (ok && !Game.flags[key]) { Game.flags[key] = true; await UI.say(null, 'Nouvelle technique double : « ' + d.name + ' » !'); }
         }
       }
     }
+    for (const m of Game.reserve) {
+      m.xp += Math.round(xp * 0.75);
+      while (m.xp >= xpToNext(m.lv)) { m.xp -= xpToNext(m.lv); levelUp(m); }
+    }
     await finish('win');
   }
   async function defeat() {
     B.busy = true; B.menu = null;
+    if (B.opts.spar) { // combat amical : pas de game over
+      message('Combat amical perdu...', 999);
+      await wait(80);
+      for (const c of B.party) c.hp = c.maxhp;
+      await finish('lose');
+      return;
+    }
     message('L\'équipe est K.O. ...', 999);
     SND.stopMusic(true);
     await wait(90);
@@ -781,9 +893,9 @@ const Battle = (() => {
           else if (c.flee) img = spr.left[[1, 0, 2, 0][Math.floor(c.anim / 6) % 4]];
           else if (c.walking) img = spr.right[[1, 0, 2, 0][Math.floor(c.anim / 6) % 4]];
           else img = spr.right[0];
-          Field.drawShadow(x, y);
-          if (c.hp <= 0) ctx.drawImage(img, Math.round(x - 12), Math.round(y - 15));
-          else ctx.drawImage(img, Math.round(x - 8), Math.round(y - 24 - c.z));
+          Field.drawShadow(x, y, 7, 3);
+          if (c.hp <= 0) ctx.drawImage(img, Math.round(x - 16), Math.round(y - 20));
+          else ctx.drawImage(img, Math.round(x - 12), Math.round(y - 32 - c.z));
         },
       });
     }
@@ -798,7 +910,7 @@ const Battle = (() => {
             const spr = GFX.char(e.d.char);
             let img = white ? spr.whiteL : (e.pose === 'attack' ? spr.attackL : spr.left[e.walking ? [1, 0, 2, 0][Math.floor(e.anim / 6) % 4] : 0]);
             Field.drawShadow(x, y);
-            ctx.drawImage(img, Math.round(x - 8), Math.round(y - 24 - e.z));
+            ctx.drawImage(img, Math.round(x - 12), Math.round(y - 32 - e.z));
           } else {
             const m = GFX.monster(e.d.spr);
             const bob = e.d.fly ? Math.sin(e.anim * 0.12) * 3 - 8 : (e.stun > 0 ? 0 : Math.round(Math.sin(e.anim * 0.08)));
@@ -905,5 +1017,5 @@ const Battle = (() => {
     }
   }
 
-  return { start, update, drawables, drawUI, drawFx, active: () => !!B, reset() { B = null; } };
+  return { start, update, drawables, drawUI, drawFx, active: () => !!B, reset() { B = null; }, state: () => B };
 })();

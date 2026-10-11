@@ -1,8 +1,8 @@
 // Exploration : chargement des cartes, rendu, déplacements, PNJ, ennemis visibles.
 const Field = (() => {
   const TS = 16;
-  const SOLID = new Set(['T', 'F', 'P', 'k', 'r', 'R', '~', 'C', 'X', 'W', '#', 'f', 'I', 'D', 'n']);
-  const NATURAL = { T: '.', P: 's', k: 'd', R: 'd', I: 'c', n: '.' };
+  const SOLID = new Set(['T', 'F', 'P', 'k', 'r', 'R', '~', 'C', 'X', 'W', '#', 'f', 'I', 'D', 'n', 'L', 'Y', 'H']);
+  const NATURAL = { T: '.', P: 's', k: 'd', R: 'd', I: 'c', n: '.', Y: 'v', H: 'c' };
   const GRASSY = new Set(['.', ',', '"', 'T', 'n', 'F', 'f']);
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
@@ -25,7 +25,7 @@ const Field = (() => {
     if (ch === '.') GFX.drawGrass(x, ox, oy, seed);
     else if (ch === ',') GFX.drawFlowers(x, ox, oy, seed);
     else if (ch === '"') GFX.drawTallGrass(x, ox, oy, seed);
-    else if ('psdcwm'.includes(ch)) {
+    else if ('psdcwmv'.includes(ch)) {
       GFX.drawGround(x, ch, ox, oy, seed, tx, ty);
       if ('psd'.includes(ch)) {
         if (isGrassy(tileAt(tx, ty - 1))) GFX.grassEdge(x, ox, oy, 'n', seed + 1);
@@ -37,7 +37,7 @@ const Field = (() => {
   }
   function renderBase() {
     const c = GFX.mk(F.W * TS, F.H * TS), x = c.getContext('2d');
-    F.waterTiles = [];
+    F.waterTiles = []; F.lavaTiles = [];
     const same = (tx, ty, set) => { const t = tileAt(tx, ty); return t === null || set.includes(t); };
     for (let ty = 0; ty < F.H; ty++) for (let tx = 0; tx < F.W; tx++) {
       const ch = F.rows[ty][tx], ox = tx * TS, oy = ty * TS;
@@ -49,6 +49,8 @@ const Field = (() => {
         case 'X': GFX.drawCastleWall(x, ox, oy, seed, nb('X')); break;
         case 'W': GFX.drawInWall(x, ox, oy, seed, nb('WD'), ty); break;
         case '~': x.fillStyle = '#3878d8'; x.fillRect(ox, oy, TS, TS); F.waterTiles.push([tx, ty]); break;
+        case 'L': x.fillStyle = '#d83c10'; x.fillRect(ox, oy, TS, TS); F.lavaTiles.push([tx, ty]); break;
+        case 'H': drawGroundTile(x, 'c', tx, ty, seed); GFX.drawBars(x, ox, oy); break;
         case 'b': GFX.drawBridge(x, ox, oy, false); break;
         case 'B': GFX.drawBridge(x, ox, oy, true); break;
         case 'f': drawGroundTile(x, groundOf('#'), tx, ty, seed); GFX.drawFence(x, ox, oy); break;
@@ -60,9 +62,10 @@ const Field = (() => {
     x.fillStyle = 'rgba(0,0,0,0.22)';
     for (let ty = 0; ty < F.H; ty++) for (let tx = 0; tx < F.W; tx++) {
       const ch = F.rows[ty][tx];
-      if ('TPnk'.includes(ch)) { x.beginPath(); x.ellipse(tx * TS + 8, ty * TS + 13, ch === 'k' ? 6 : 10, 4, 0, 0, 7); x.fill(); }
+      if ('TPnkY'.includes(ch)) { x.beginPath(); x.ellipse(tx * TS + 8, ty * TS + 13, ch === 'k' ? 6 : 10, 4, 0, 0, 7); x.fill(); }
     }
     for (const o of F.map.objects || []) {
+      if (o.cond && !o.cond()) continue;
       if (o.type === 'building') {
         const img = GFX.tiles.buildings[o.img];
         x.fillStyle = 'rgba(0,0,0,0.22)'; x.fillRect(o.x + 4, o.y + img.height - 4, img.width - 4, 5);
@@ -82,10 +85,12 @@ const Field = (() => {
       else if (ch === 'r') { img = T.rocks[h % 3]; dx = 0; dy = 1; sy = oy + 10; }
       else if (ch === 'R') { img = T.rocksD[h % 2]; dx = 0; dy = 1; sy = oy + 10; }
       else if (ch === 'n') { img = T.pines[h % 2]; dx = -6; dy = -27; }
+      else if (ch === 'Y') { img = T.deadTrees[h % 3]; dx = -6; dy = -26; }
       else if (ch === 'I') { img = T.props.pillar; dx = 0; dy = -24; sy = oy + 14; }
       if (img) objs.push({ img, x: ox + dx, y: oy + dy, sortY: sy });
     }
     for (const o of F.map.objects || []) {
+      if (o.cond && !o.cond()) continue;
       const img = o.type === 'building' ? T.buildings[o.img] : T.props[o.img];
       objs.push({ img, x: o.x, y: o.y, sortY: o.sortY !== undefined ? o.sortY : o.y + img.height - 4, flat: o.flat });
     }
@@ -97,7 +102,7 @@ const Field = (() => {
     const e = Object.assign({ dir: 'down', frame: 0, anim: 0, moving: false, visible: true, solid: true, z: 0, t: Math.random() * 100 }, def);
     if (def.tx !== undefined) { e.x = def.tx * TS + 8; e.y = def.ty * TS + 14; }
     if (e.kind === 'warp' || e.kind === 'trigger') { e.solid = false; e.visible = false; }
-    if (e.kind === 'save') { e.solid = false; }
+    if (e.kind === 'save' || e.kind === 'fire') { e.solid = !!def.solid; }
     if (e.kind === 'enemy') { e.homeX = e.x; e.homeY = e.y; e.solid = false; e.cool = 0; }
     if (e.kind === 'chest' && Game.flags['chest_' + e.id]) e.opened = true;
     return e;
@@ -152,6 +157,7 @@ const Field = (() => {
     F.H = F.rows.length; F.W = Math.max(...m.rows.map(r => r.length));
     for (const r of F.rows) while (r.length < F.W) r.push('D');
     F.solid = F.rows.map(r => r.map(ch => SOLID.has(ch)));
+    if (m.patch) m.patch(); // modifications persistantes (château détruit, barreaux ouverts...)
     renderBase(); buildObjects();
     F.entities = (m.entities ? m.entities() : []).filter(d => !d.cond || d.cond()).map(makeEntity);
     F.actors = [];
@@ -164,6 +170,12 @@ const Field = (() => {
     snapCamera();
     if (m.music) SND.playMusic(m.music);
   }
+  // Modifie une tuile en cours de jeu (barreaux ouverts, château détruit...)
+  function setTile(tx, ty, ch) {
+    F.rows[ty][tx] = ch;
+    F.solid[ty][tx] = SOLID.has(ch);
+  }
+  function rebuild() { renderBase(); buildObjects(); }
   function snapCamera() {
     const L = F.actors[0];
     const mw = F.W * TS, mh = F.H * TS;
@@ -384,8 +396,8 @@ const Field = (() => {
   }
   function drawCharAt(name, x, y, dir, anim, moving, z = 0, img) {
     const spr = GFX.char(name);
-    drawShadow(x, y);
-    ctx.drawImage(img || charFrame(spr, dir, anim, moving), Math.round(x - 8), Math.round(y - 24 - z));
+    drawShadow(x, y, 7, 3);
+    ctx.drawImage(img || charFrame(spr, dir, anim, moving), Math.round(x - 12), Math.round(y - 32 - z));
   }
   function drawEntity(e, cx, cy) {
     const x = e.x - cx, y = e.y - cy;
@@ -393,6 +405,15 @@ const Field = (() => {
       case 'npc':
         if (e.mon) { drawMonsterAt(e.mon, x, y, e.dir !== 'right', e.t, e.fly); break; }
         if (e.img) { ctx.drawImage(e.img, Math.round(x - e.img.width / 2), Math.round(y - e.img.height)); break; }
+        if (e.ghost !== undefined) { // apparition (esprit) : halo et transparence
+          ctx.save();
+          ctx.globalAlpha = e.ghost * 0.3;
+          ctx.fillStyle = '#c8f0ff'; ctx.beginPath(); ctx.ellipse(x, y - 16 - e.z, 16, 22, 0, 0, 7); ctx.fill();
+          ctx.globalAlpha = e.ghost * (0.85 + Math.sin(e.t * 0.1) * 0.08);
+          ctx.drawImage(charFrame(GFX.char(e.sprite), e.dir, 0, false), Math.round(x - 12), Math.round(y - 32 - e.z));
+          ctx.restore();
+          break;
+        }
         drawCharAt(e.sprite, x, y, e.dir, e.anim, e.moving, e.z);
         break;
       case 'enemy': {
@@ -400,7 +421,7 @@ const Field = (() => {
         if (blink) break;
         if (e.char) drawCharAt(e.char, x, y, e.dir === 'right' ? 'right' : 'left', e.anim, true, 0);
         else drawMonsterAt(e.mon, x, y, e.dir !== 'right', e.t, ENEMIES[e.group[0]].fly);
-        if (e.alert && !F.battle) FONT.draw(ctx, '!', x - 1, y - 34 + Math.sin(e.t * 0.3) * 2, '#ff6060');
+        if (e.alert && !F.battle) FONT.draw(ctx, '!', x - 1, y - 42 + Math.sin(e.t * 0.3) * 2, '#ff6060');
         break;
       }
       case 'chest': ctx.drawImage(GFX.tiles.props[e.opened ? 'chestOpen' : 'chest'], Math.round(x - 8), Math.round(y - 14)); break;
@@ -413,6 +434,21 @@ const Field = (() => {
         break;
       }
       case 'save': drawSave(x, y, e.t); break;
+      case 'fire': GFX.drawFire(ctx, x, y, e.t + (e.phase || 0), e.scale || 1); break;
+      case 'glint': {
+        const s = Math.floor(e.t / 6) % 6;
+        ctx.fillStyle = '#ffe070'; ctx.fillRect(x - 1, y - 5, 3, 3);
+        ctx.fillStyle = '#fff'; if (s < 3) { ctx.fillRect(x - 3 + s, y - 4, 1, 1); ctx.fillRect(x, y - 7 + s, 1, 1); }
+        break;
+      }
+      case 'herb': {
+        const g = 0.5 + Math.sin(e.t * 0.1) * 0.3;
+        ctx.fillStyle = 'rgba(160,255,160,' + (g * 0.35) + ')'; ctx.beginPath(); ctx.arc(x, y - 5, 8, 0, 7); ctx.fill();
+        ctx.fillStyle = K; ctx.fillRect(x - 5, y - 9, 11, 9);
+        ctx.fillStyle = '#3c9a44'; ctx.fillRect(x - 4, y - 6, 3, 5); ctx.fillRect(x + 2, y - 6, 3, 5); ctx.fillRect(x - 1, y - 8, 3, 7);
+        ctx.fillStyle = '#90f0a0'; ctx.fillRect(x, y - 8, 1, 2); ctx.fillStyle = '#ffffff'; if (Math.floor(e.t / 10) % 4 === 0) ctx.fillRect(x - 3, y - 10, 1, 1);
+        break;
+      }
       case 'sign': ctx.drawImage(GFX.tiles.props.sign, Math.round(x - 7), Math.round(y - 16)); break;
       case 'img': ctx.drawImage(e.img, Math.round(x - e.img.width / 2), Math.round(y - e.img.height - (e.z || 0))); break;
     }
@@ -457,6 +493,12 @@ const Field = (() => {
       if (px < -TS || py < -TS || px > SW || py > SH) continue;
       GFX.drawWater(ctx, px, py, tx, ty, t, { n: isW(tx, ty - 1), s: isW(tx, ty + 1), w: isW(tx - 1, ty), e: isW(tx + 1, ty) }, F.map.night);
     }
+    const isL = (x, y) => { const c = tileAt(x, y); return c === null || c === 'L'; };
+    for (const [tx, ty] of F.lavaTiles) {
+      const px = tx * TS - cx, py = ty * TS - cy;
+      if (px < -TS || py < -TS || px > SW || py > SH) continue;
+      GFX.drawLava(ctx, px, py, tx, ty, t, { n: isL(tx, ty - 1), s: isL(tx, ty + 1), w: isL(tx - 1, ty), e: isL(tx + 1, ty) });
+    }
     // éléments plats au sol
     for (const e of F.entities) if (!e.gone && e.visible && e.kind === 'save') drawEntity(e, cx, cy);
     const list = [];
@@ -483,11 +525,21 @@ const Field = (() => {
       ctx.fillStyle = 'rgba(16,16,70,0.42)'; ctx.fillRect(0, 0, SW, SH);
     }
     if (F.map.tint) { ctx.fillStyle = F.map.tint; ctx.fillRect(0, 0, SW, SH); }
+    if (F.map.glow) { // lueurs (feux de camp, lave) par-dessus la nuit
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (const e of F.entities) if (!e.gone && (e.kind === 'fire') && Math.abs(e.x - cx - SW / 2) < SW) {
+        const r = 34 + Math.sin(e.t * 0.2) * 3;
+        const g = ctx.createRadialGradient(e.x - cx, e.y - cy - 6, 2, e.x - cx, e.y - cy - 6, r);
+        g.addColorStop(0, 'rgba(255,160,60,0.35)'); g.addColorStop(1, 'rgba(255,120,40,0)');
+        ctx.fillStyle = g; ctx.fillRect(e.x - cx - r, e.y - cy - 6 - r, r * 2, r * 2);
+      }
+      ctx.restore();
+    }
     // effets (bulles d'émotion, fumée, techniques)
     F.effects = F.effects.filter(fx => {
       fx.age = (fx.age || 0) + 1;
       if (fx.type === 'emote') {
-        const x = fx.e.x - cx, y = fx.e.y - cy - 34 - (fx.e.z || 0);
+        const x = fx.e.x - cx, y = fx.e.y - cy - 42 - (fx.e.z || 0);
         UI.win(x - 7, y - 3, 14, 15);
         FONT.drawCentered(ctx, fx.ch, x, y, fx.ch === '!' ? '#ff8080' : '#fff');
         return --fx.t > 0;
@@ -508,7 +560,7 @@ const Field = (() => {
   }
 
   return Object.assign(F, {
-    load, update, draw, run, locked, ent, face, faceTo, walkTo, walkTile, jump, emote, partyGather, syncParty, snapCamera,
+    load, update, draw, run, locked, ent, face, faceTo, walkTo, walkTile, jump, emote, partyGather, syncParty, snapCamera, setTile, rebuild,
     leader: () => F.actors[0], tileAt, drawCharAt, drawMonsterAt, drawShadow, makeEntity, blocked,
     addEntity(def) { const e = makeEntity(def); F.entities.push(e); return e; },
     removeEntity(id) { const e = ent(id); if (e) e.gone = true; },

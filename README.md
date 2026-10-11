@@ -30,13 +30,26 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 
 - **Exploration façon Chrono Trigger** : vue de dessus, les membres de l'équipe suivent le meneur, et les ennemis sont visibles sur la carte (pas de combats aléatoires).
 - **Combats ATB sur le terrain** : le combat se déroule directement sur la carte, sans écran séparé. Chaque héros a sa jauge de temps (mode « attente » pendant les sous-menus).
-- **Techniques** : Kamehameha, Bâton Magique, Jan Ken, Capsules de Bulma, Taiyoken, Kienzan…
-- **Techniques doubles** : quand deux héros ont leur jauge pleine, ils peuvent lancer *Capsule Frappe*, *Double Kamehameha* ou *Flash Bombe*.
-- **3 héros jouables** : Goku, Bulma et Krilin, avec des niveaux et de nouvelles techniques qui s'apprennent.
-- **8 zones** : maison de Goku, Mont Paozou, forêt, plage de la Kame House, route de montagne, village d'Aru, désert de Diablo et château de Pilaf.
-- **4 boss** : l'Ours Brigand, Oolong, Yamcha et Puar, puis la Pilaf Machine (avec Shu et Mai).
-- **Finale** : on invoque Shenron avec les 7 boules, et 4 vœux mènent à 4 fins différentes.
-- Boutique, auberge, coffres, Dragon Radar (menu → Boules), sauvegarde.
+- **Sprites détaillés** : personnages en 24x32 pixels avec ombrages et contours, monstres et boss redessinés, portraits dans les dialogues.
+- **5 héros** : Goku, Bulma, Krilin, Yamcha et Oolong. Trois combattent en même temps, les autres attendent en réserve (menu → Équipe) et gagnent quand même de l'expérience.
+- **Techniques** : Kamehameha, Bâton Magique, Jan Ken, Capsules de Bulma, Taiyoken, Kienzan, Poing du Loup, Sokidan, Transformation…
+- **Techniques doubles** : quand deux héros ont leur jauge pleine, ils peuvent lancer *Double Kamehameha*, *Flash Bombe*, *Double Croc*, *Taureau Kamehameha*…
+
+### Une histoire avec des choix
+
+- **Un prologue et 6 chapitres** : maison de Goku, forêt de Paozou, Kame House, village d'Aru, désert de Diablo, Mont Frypan et château de Pilaf.
+- **Des choix qui comptent** : épargner ou chasser l'Ours Brigand, poursuivre les espions de Pilaf, pardonner à Oolong ou le livrer au village, recruter Yamcha ou non, promettre d'épouser Chichi… et sauver le château de Gyumao en affrontant l'Esprit du Volcan, ou tout pulvériser d'un Kamehameha.
+- **Affinités** : tes réponses rapprochent (ou fâchent) tes compagnons. Les soirées au feu de camp permettent de mieux les connaître.
+- **Quêtes secondaires** suivies dans le Journal (menu) : la tortue perdue, la grand-mère malade, le marchand dévalisé, la boussole du nomade, le château en flammes.
+- **Conséquences** : l'évasion des cachots de Pilaf dépend de qui t'accompagne (Oolong, Yamcha, le plan des espions… ou un Kamehameha bien bruyant).
+- **Finale** : Pilaf invoque Shenron, et il faut faire un vœu avant lui. Les vœux disponibles dépendent de ton aventure (revoir Grand-père Gohan, rebâtir le château de Gyumao, le vœu d'un compagnon…).
+- **Épilogue et 3 fins** : chaque personnage connaît un destin différent selon tes choix, et ton karma décide de la fin (Le Cœur Pur, Le Petit Héros ou Le Garnement).
+
+### Et aussi
+
+- **8 boss** : l'Ours Brigand, Krilin (duel amical), le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan et la Pilaf Machine.
+- **13 zones**, dont le campement, le Mont Frypan, le cœur du volcan et les cachots du château.
+- Boutiques, auberge, coffres, Dragon Radar (menu → Boules), objets clés, sauvegarde.
 
 ## Structure du code
 
@@ -44,15 +57,16 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 index.html        page, mise à l'échelle et commandes tactiles
 js/font.js        police pixel art (avec les accents)
 js/audio.js       musiques chiptune originales et effets sonores
-js/sprites.js     sprites des personnages et des monstres (grilles + palettes)
+js/sprites.js     sprites des personnages (têtes, corps, palettes)
+js/monsters.js    monstres et boss (grilles + palettes)
 js/gfx.js         tuiles procédurales, arbres, bâtiments, objets
-js/data.js        héros, techniques, objets, ennemis
+js/data.js        héros, techniques, objets, ennemis, quêtes
 js/engine.js      entrées, tâches asynchrones, état de la partie, sauvegarde
-js/ui.js          fenêtres, dialogues, menu, boutique
+js/ui.js          fenêtres, dialogues et portraits, menu, journal, boutique
 js/field.js       exploration : cartes, collisions, PNJ, ennemis visibles
 js/battle.js      système de combat ATB
-js/maps.js        cartes, événements et scénario
-js/main.js        boucle principale, écran titre, finale et crédits
+js/maps.js        cartes, événements, scénario et choix
+js/main.js        boucle principale, écran titre, finale, épilogue et crédits
 tools/standalone.js  génère une version en un seul fichier HTML
 ```
 

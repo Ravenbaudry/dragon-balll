@@ -15,22 +15,9 @@ const GFX = (() => {
   function expand(rows, w) {
     return rows.map(r => {
       if (r.length === w / 2) r = r + r.split('').reverse().join('');
-      if (r.length !== w && !warned.has(r)) { warned.add(r); console.warn('Ligne de sprite de longueur', r.length, '≠', w, ':', r); }
+      if (r.length && r.length !== w && !warned.has(r)) { warned.add(r); console.warn('Ligne de sprite de longueur', r.length, '≠', w, ':', r); }
       return r.padEnd(w, '.').slice(0, w);
     });
-  }
-  function paint(ctx, rows, pal, ox = 0, oy = 0) {
-    for (let y = 0; y < rows.length; y++) {
-      const r = rows[y];
-      for (let x = 0; x < r.length; x++) {
-        const ch = r[x];
-        if (ch === '.' || ch === ' ') continue;
-        const col = pal[ch];
-        if (!col) continue;
-        ctx.fillStyle = col;
-        ctx.fillRect(ox + x, oy + y, 1, 1);
-      }
-    }
   }
   function mirror(src) {
     const c = mk(src.width, src.height), x = c.getContext('2d');
@@ -50,77 +37,193 @@ const GFX = (() => {
     return c;
   }
 
-  // ---------------- Personnages ----------------
-  function liftHalf(rows, half) {
-    // Soulève le pied gauche (half=0) ou droit (half=1) d'un pixel : lignes 19-23 (indices 8-12 du corps)
-    const out = rows.slice();
-    const x0 = half ? 8 : 0, x1 = half ? 16 : 8;
-    for (let i = 8; i <= 12; i++) {
-      const src = i < 12 ? out[i + 1] : '.'.repeat(16);
-      out[i] = out[i].slice(0, x0) + src.slice(x0, x1) + out[i].slice(x1);
-    }
-    return out;
+  // ---------------- Personnages (24x32) ----------------
+  function hexRGB(c) { const n = parseInt(c.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+  function shade(c, f) {
+    const [r, g, b] = hexRGB(c);
+    return '#' + [r * f, g * f, b * f * 1.08].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
   }
-  function swayRobe(rows, dir) {
-    const out = rows.slice();
-    for (let i = 9; i <= 12; i++) {
-      const r = out[i];
-      out[i] = dir > 0 ? '.' + r.slice(0, 15) : r.slice(1) + '.';
+  // Grille -> canvas, avec contour sélectif (les traits internes prennent la couleur voisine assombrie)
+  function lighten(c, f) {
+    const [r, g, b] = hexRGB(c);
+    return '#' + [r, g, b].map(v => Math.round(v + (255 - v) * f).toString(16).padStart(2, '0')).join('');
+  }
+  // rim : lettres qui reçoivent un reflet sur leur bord supérieur
+  function renderGrid(g, pal, rim) {
+    const h = g.length, w = g[0].length;
+    const c = mk(w, h), x = c.getContext('2d');
+    const at = (i, j) => (j < 0 || j >= h || i < 0 || i >= w) ? '.' : g[j][i];
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const ch = g[j][i];
+      if (ch === '.') continue;
+      let col = pal[ch];
+      if (rim && col && rim.has(ch)) { const up = at(i, j - 1); if (up === '.' || up === 'k') col = lighten(col, 0.32); }
+      if (ch === 'k') {
+        const nb = [at(i, j - 1), at(i, j + 1), at(i - 1, j), at(i + 1, j)];
+        if (nb.includes('.')) col = pal.k;
+        else {
+          const counts = {};
+          for (const n of nb) if (n !== 'k' && pal[n]) counts[n] = (counts[n] || 0) + 1;
+          const best = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+          col = best ? shade(pal[best], 0.4) : pal.k;
+        }
+      }
+      if (!col) continue;
+      x.fillStyle = col; x.fillRect(i, j, 1, 1);
     }
-    return out;
+    return c;
+  }
+  const blankRow = () => new Array(CW).fill('.');
+  function gridNew() { return Array.from({ length: CH }, blankRow); }
+  function put(g, rows, y0, mirror) {
+    rows.forEach((r, j) => {
+      const y = y0 + j;
+      if (y < 0 || y >= CH) return;
+      for (let i = 0; i < CW; i++) { const ch = mirror ? r[CW - 1 - i] : r[i]; if (ch && ch !== '.') g[y][i] = ch; }
+    });
+  }
+  function arr(rows) { return expand(rows, CW).map(r => r.split('')); }
+  function shiftV(rows, x0, x1, y0, y1, dy) {
+    for (let x = x0; x <= x1; x++) {
+      if (dy > 0) { for (let y = y1; y > y0; y--) rows[y][x] = rows[y - 1][x]; }
+      else { for (let y = y0; y < y1; y++) rows[y][x] = rows[y + 1][x]; rows[y1][x] = '.'; }
+    }
+  }
+  function shiftH(rows, x0, x1, y0, y1, dx) {
+    for (let y = y0; y <= y1; y++) {
+      const seg = rows[y].slice(x0, x1 + 1);
+      for (let x = x0; x <= x1; x++) rows[y][x] = '.';
+      seg.forEach((ch, k) => { const nx = x0 + k + dx; if (ch !== '.' && nx >= 0 && nx < CW) rows[y][nx] = ch; });
+    }
+  }
+  const ARM_ROWS = { gi: [4, 10], tunic: [4, 9], dress: [4, 8], robe: [4, 8] };
+  function bodyFront(type, dir, frame) {
+    const b = BODIES[type];
+    const rows = arr(b[dir]);
+    if (frame === 0) return rows;
+    const [a0, a1] = ARM_ROWS[type];
+    if (type === 'robe') { shiftH(rows, 0, CW - 1, 12, 15, frame === 1 ? 1 : -1); return rows; }
+    // pied gauche levé, bras gauche en avant, bras droit en arrière ; frame 2 = miroir
+    if (type === 'dress') shiftV(rows, 5, 11, 12, 15, -1); else shiftV(rows, 5, 11, 10, 15, -1);
+    shiftV(rows, 1, 7, a0, a1, 1);
+    shiftV(rows, 16, 22, a0, a1, -1);
+    if (frame === 2) return rows.map(r => r.slice().reverse());
+    return rows;
+  }
+  function bodySide(type, frame, attack) {
+    const b = BODIES[type];
+    const upper = arr(attack ? b.attack : b.right);
+    const legKey = attack ? 'walkA' : ['stand', 'walkA', 'walkB'][frame];
+    let lower;
+    if (type === 'dress') lower = arr(b.lower[legKey]);
+    else if (type === 'robe') { lower = arr(b.lower); if (!attack && frame) shiftH(lower, 0, CW - 1, 4, 7, frame === 1 ? 1 : -1); }
+    else lower = arr(LEGS[legKey]);
+    if (!attack && frame) shiftH(upper, 9, 14, 2, 7, frame === 1 ? 1 : -1);
+    return upper.concat(lower);
+  }
+  function composeChar(def, dir, frame, attack) {
+    const g = gridNew();
+    const type = def.body;
+    const body = dir === 'right' ? bodySide(type, frame, attack) : bodyFront(type, dir, frame);
+    put(g, body.map(r => r.join('')), BODY_Y);
+    const over = def.over ? OVERLAYS[def.over] : null;
+    if (over && over[dir]) put(g, expand(over[dir].slice(1), CW), over[dir][0]);
+    const head = HEADS[def.head];
+    put(g, expand(head[dir], CW), 0);
+    if (head.over && head.over[dir]) put(g, expand(head.over[dir].slice(1), CW), head.over[dir][0]);
+    if (def.short) {
+      const cut = type === 'dress' ? 28 : 26;
+      g.splice(cut, 2); g.unshift(blankRow(), blankRow());
+    }
+    return g;
+  }
+  function charPal(def) {
+    const pal = Object.assign({}, BASE_PAL, PALS[def.pal]);
+    if (!pal.p) pal.p = pal.c; if (!pal.P) pal.P = pal.C;
+    if (!pal.l) pal.l = pal.p; if (!pal.L) pal.L = pal.P;
+    if (!pal.F) pal.F = pal.f; if (!pal.D) pal.D = pal.d; if (!pal.x) pal.x = pal.f;
+    if (!pal.a) pal.a = pal.c;
+    return pal;
   }
   function buildChar(name) {
     const def = CHARS[name];
-    const pal = Object.assign({}, BASE_PAL, PALS[def.pal]);
-    if (!pal.p) pal.p = pal.c; if (!pal.P) pal.P = pal.C;
-    if (!pal.l) pal.l = pal.d; if (!pal.L) pal.L = pal.D || pal.d;
-    if (!pal.F) pal.F = pal.f; if (!pal.D) pal.D = pal.d;
-    const head = HEADS[def.head], body = BODIES[def.body], over = def.over ? OVERLAYS[def.over] : null;
-    const out = {};
+    const pal = charPal(def);
+    const out = { grids: {} };
     for (const dir of ['down', 'up', 'right']) {
-      const bRows = expand(body[dir], 16);
-      const hRows = expand(head[dir], 16);
-      const variants = [bRows];
-      if (dir === 'right') {
-        if (body.walk) body.walk.forEach(w => variants.push(bRows.slice(0, 8).concat(expand(w, 16))));
-        else { variants.push(swayRobe(bRows, 1)); variants.push(swayRobe(bRows, -1)); }
-      } else if (def.body === 'robe') {
-        variants.push(swayRobe(bRows, 1)); variants.push(swayRobe(bRows, -1));
-      } else {
-        variants.push(liftHalf(bRows, 0)); variants.push(liftHalf(bRows, 1));
-      }
-      out[dir] = variants.map(br => {
-        const c = mk(16, 24), x = c.getContext('2d');
-        paint(x, br, pal, 0, 11);
-        if (over && over[dir]) paint(x, expand(over[dir].slice(1), 16), pal, 0, over[dir][0]);
-        paint(x, hRows, pal, 0, 0);
-        return c;
-      });
+      out[dir] = [0, 1, 2].map(f => { const g = composeChar(def, dir, f); if (!f) out.grids[dir] = g; return renderGrid(g, pal); });
     }
     out.left = out.right.map(mirror);
-    // Pose d'attaque (bras tendu vers la droite)
-    const atk = mk(16, 24), ax = atk.getContext('2d');
-    ax.drawImage(out.right[1], 0, 0);
-    paint(ax, ['........kkkkkk..', '........kaasssk.', '........kkkkkk..'], pal, 1, 13);
-    out.attack = atk;
-    out.attackL = mirror(atk);
+    out.attack = renderGrid(composeChar(def, 'right', 1, true), pal);
+    out.attackL = mirror(out.attack);
     out.ko = rotate90(out.down[0]);
     out.koL = mirror(out.ko);
     out.white = flash(out.right[0]);
     out.whiteL = mirror(out.white);
+    out.pal = pal;
     return out;
   }
   const charCache = {};
   function char(name) { return charCache[name] || (charCache[name] = buildChar(name)); }
 
+  // Portrait de dialogue : tête agrandie x2 (Scale2x sur les lettres) puis rendue avec la palette.
+  function scale2x(g) {
+    const h = g.length, w = g[0].length, out = [];
+    const at = (i, j) => (j < 0 || j >= h || i < 0 || i >= w) ? '.' : g[j][i];
+    for (let j = 0; j < h; j++) {
+      const r0 = [], r1 = [];
+      for (let i = 0; i < w; i++) {
+        const P = g[j][i], A = at(i, j - 1), B = at(i + 1, j), C = at(i - 1, j), D = at(i, j + 1);
+        r0.push(C === A && C !== D && A !== B ? A : P, A === B && A !== C && B !== D ? B : P);
+        r1.push(D === C && D !== B && C !== A ? C : P, B === D && B !== A && D !== C ? D : P);
+      }
+      out.push(r0, r1);
+    }
+    return out;
+  }
+  const portraitCache = {};
+  function portrait(name) {
+    if (portraitCache[name]) return portraitCache[name];
+    const def = CHARS[name];
+    if (!def) return null;
+    const g = composeChar(def, 'down', 0);
+    const top = def.short ? 2 : 0;
+    const crop = g.slice(top, top + 21).map(r => r.slice(2, 22));
+    // épaules : on garde le haut du corps
+    const big = scale2x(crop);
+    const c = renderGrid(big, charPal(def));
+    return (portraitCache[name] = c);
+  }
+
+  // Portrait de monstre : un cadrage 20x21 autour de la tête, agrandi en Scale2x.
+  const MON_POR = { ours: [3, 0], gyumao: [4, 0], volcan: [10, 1], puar: [-1, -2], umigame: [-1, -8], taureau: [2, 0], machine: [12, 0] };
+  function monPortrait(name) {
+    const key = 'mon:' + name;
+    if (portraitCache[key]) return portraitCache[key];
+    const m = MONSTERS[name];
+    if (!m) return null;
+    const w = Math.max(...m.rows.map(r => r.length));
+    const [ox, oy] = MON_POR[name] || [Math.floor((w - 20) / 2), 0];
+    const crop = [];
+    for (let j = 0; j < 21; j++) {
+      const r = m.rows[oy + j] || '', row = [];
+      for (let i = 0; i < 20; i++) { const ch = r[ox + i]; row.push(ch && ch !== ' ' ? ch : '.'); }
+      crop.push(row);
+    }
+    const pal = Object.assign({ k: K }, m.pal);
+    const rim = new Set(Object.keys(pal).filter(l => l === l.toLowerCase() && !NO_RIM.has(l)));
+    return (portraitCache[key] = renderGrid(scale2x(crop), pal, rim));
+  }
+
   const monCache = {};
+  const NO_RIM = new Set(['k', 'r', 'w', 't', 'e', 'y', 'm', 's']);
   function monster(name) {
     if (monCache[name]) return monCache[name];
     const m = MONSTERS[name];
     const w = Math.max(...m.rows.map(r => r.length));
-    const rows = m.rows.map(r => r.padEnd(w, '.'));
-    const c = mk(w, rows.length);
-    paint(c.getContext('2d'), rows, Object.assign({ k: K }, m.pal));
+    const rows = m.rows.map(r => r.padEnd(w, '.').split(''));
+    const pal = Object.assign({ k: K }, m.pal);
+    const rim = new Set(Object.keys(pal).filter(l => l === l.toLowerCase() && !NO_RIM.has(l)));
+    const c = renderGrid(rows, pal, rim);
     const r = { img: c, imgR: mirror(c), white: flash(c), whiteR: flash(mirror(c)), w, h: rows.length };
     return (monCache[name] = r);
   }
@@ -327,6 +430,10 @@ const GFX = (() => {
       }
       return;
     }
+    if (ch === 'v') { // sol volcanique
+      fillNoise(x, ox, oy, '#4a3a38', [['#3a2c2a', 12], ['#5e4a46', 8], ['#a03818', 2]], seed);
+      return;
+    }
     if (ch === 'm') { // tapis rouge
       x.fillStyle = '#a82434'; x.fillRect(ox, oy, TS, TS);
       x.fillStyle = '#c03848'; for (let i = 0; i < TS; i += 4) x.fillRect(ox + i + (ty % 2) * 2, oy + 6, 2, 2);
@@ -469,6 +576,102 @@ const GFX = (() => {
     if (!nb.s) { for (let i = 0; i < TS; i++) x.fillRect(sx + i, sy + 15 - ((i + f) % 3 === 0 ? 1 : 0), 1, 1 + ((i + f) % 3 === 0 ? 1 : 0)); }
     if (!nb.w) { for (let i = 0; i < TS; i++) x.fillRect(sx, sy + i, 1 + ((i + f + ty) % 3 === 0 ? 1 : 0), 1); }
     if (!nb.e) { for (let i = 0; i < TS; i++) x.fillRect(sx + 15 - ((i + f) % 3 === 0 ? 1 : 0), sy + i, 1 + ((i + f) % 3 === 0 ? 1 : 0), 1); }
+  }
+
+  // Lave animée
+  function drawLava(x, sx, sy, tx, ty, t, nb) {
+    x.fillStyle = '#d83c10'; x.fillRect(sx, sy, TS, TS);
+    const ph = t * 0.04;
+    for (let r = 0; r < 4; r++) {
+      const off = Math.floor((Math.sin(ph + (ty * 4 + r) * 0.9) + 1) * 4 + tx * 5 + r * 3) % 16;
+      x.fillStyle = '#ff7a20'; x.fillRect(sx + off, sy + r * 4 + 1, 6, 2);
+      x.fillStyle = '#ffd040'; x.fillRect(sx + (off + 2) % 16, sy + r * 4 + 1, 2, 1);
+    }
+    if ((tx * 7 + ty * 3 + Math.floor(t / 12)) % 11 === 0) { x.fillStyle = '#fff0a0'; x.fillRect(sx + 6, sy + 6, 3, 3); }
+    x.fillStyle = '#5a1808';
+    if (!nb.n) x.fillRect(sx, sy, TS, 2);
+    if (!nb.s) x.fillRect(sx, sy + 14, TS, 2);
+    if (!nb.w) x.fillRect(sx, sy, 2, TS);
+    if (!nb.e) x.fillRect(sx + 14, sy, 2, TS);
+  }
+  // Flammes animées (décor)
+  function drawFire(x, cx, by, t, sc = 1) {
+    for (let i = 0; i < 3; i++) {
+      const ph = t * 0.25 + i * 2.1;
+      const h = (10 + Math.sin(ph) * 3) * sc, w = (6 - i * 1.5) * sc;
+      const col = ['#e83c10', '#ff8c20', '#ffe060'][i];
+      x.fillStyle = col;
+      x.beginPath();
+      x.moveTo(cx - w, by);
+      x.quadraticCurveTo(cx - w * 0.8, by - h * 0.6, cx + Math.sin(ph * 1.3) * 2 * sc, by - h * (1 - i * 0.18));
+      x.quadraticCurveTo(cx + w * 0.8, by - h * 0.6, cx + w, by);
+      x.fill();
+    }
+  }
+  function drawBars(x, ox, oy) {
+    x.fillStyle = '#2a2838'; x.fillRect(ox, oy + 1, TS, 2); x.fillRect(ox, oy + 13, TS, 2);
+    for (let i = 1; i < TS; i += 4) { x.fillStyle = '#20202c'; x.fillRect(ox + i, oy, 2, TS); x.fillStyle = '#7a7890'; x.fillRect(ox + i, oy, 1, TS); }
+  }
+  function makeDeadTree(seed) {
+    const R = rng(seed);
+    const c = mk(28, 40), x = c.getContext('2d');
+    const col = ['#2a1a14', '#4a3024', '#6a4a38'];
+    function branch(x0, y0, ang, len, w) {
+      if (len < 3 || w < 1) return;
+      const x1 = x0 + Math.cos(ang) * len, y1 = y0 + Math.sin(ang) * len;
+      x.strokeStyle = col[0]; x.lineWidth = w + 2; x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke();
+      x.strokeStyle = col[1]; x.lineWidth = w; x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke();
+      branch(x1, y1, ang - 0.5 - R() * 0.3, len * 0.65, w - 1);
+      branch(x1, y1, ang + 0.4 + R() * 0.3, len * 0.6, w - 1);
+    }
+    branch(14, 39, -Math.PI / 2, 14, 4);
+    x.fillStyle = col[2]; x.fillRect(13, 26, 1, 10);
+    return c;
+  }
+  function makeTomb() {
+    const c = mk(22, 26), x = c.getContext('2d');
+    x.fillStyle = K; x.fillRect(3, 2, 16, 20); x.beginPath(); x.arc(11, 6, 8, Math.PI, 0); x.fill();
+    x.fillStyle = '#a8a8b8'; x.fillRect(4, 3, 14, 18); x.beginPath(); x.arc(11, 6, 7, Math.PI, 0); x.fill();
+    x.fillStyle = '#c8c8d8'; x.fillRect(5, 4, 3, 15);
+    x.fillStyle = '#6a6a80'; x.fillRect(15, 5, 2, 15);
+    x.fillStyle = '#4a4a5a'; x.fillRect(8, 8, 6, 1); x.fillRect(10, 6, 2, 8);
+    x.fillStyle = K; x.fillRect(0, 20, 22, 6); x.fillStyle = '#7a7a8a'; x.fillRect(1, 21, 20, 4);
+    x.fillStyle = '#e04050'; x.fillRect(2, 18, 2, 2); x.fillStyle = '#f8e060'; x.fillRect(18, 18, 2, 2);
+    return c;
+  }
+  function makePagoda() {
+    const c = mk(112, 112), x = c.getContext('2d');
+    function roof(y, half, h) {
+      for (let j = 0; j < h; j++) {
+        const t = j / (h - 1), w = Math.round(half * (0.55 + 0.45 * t));
+        x.fillStyle = K; x.fillRect(56 - w - 1, y + j, w * 2 + 2, 1);
+        x.fillStyle = j % 3 === 2 ? '#2a5a3a' : '#3c8a54'; x.fillRect(56 - w, y + j, w * 2, 1);
+        x.fillStyle = '#5cb070'; x.fillRect(56 - w, y + j, Math.round(w * 0.4), 1);
+      }
+      x.fillStyle = K; x.fillRect(56 - half - 3, y + h - 3, 4, 4); x.fillRect(56 + half - 1, y + h - 3, 4, 4);
+      x.fillStyle = '#f0c040'; x.fillRect(56 - half - 2, y + h - 2, 2, 2); x.fillRect(56 + half, y + h - 2, 2, 2);
+    }
+    function wall(y, half, h) {
+      x.fillStyle = K; x.fillRect(56 - half - 1, y, half * 2 + 2, h);
+      x.fillStyle = '#d84030'; x.fillRect(56 - half, y, half * 2, h);
+      x.fillStyle = '#a02818'; x.fillRect(56 + half - 6, y, 6, h);
+      for (let i = 56 - half + 4; i < 56 + half - 4; i += 10) { x.fillStyle = '#f8e090'; x.fillRect(i, y + 3, 6, h - 6); x.fillStyle = '#3a2010'; x.fillRect(i + 2, y + 3, 2, h - 6); }
+    }
+    wall(86, 44, 26); roof(68, 54, 18);
+    wall(52, 32, 18); roof(36, 42, 16);
+    wall(24, 20, 14); roof(8, 30, 16);
+    x.fillStyle = '#f0c040'; x.fillRect(54, 0, 4, 9); x.fillStyle = K; x.fillRect(53, 8, 6, 1);
+    // porte
+    x.fillStyle = K; x.fillRect(46, 92, 20, 20); x.fillStyle = '#5a3418'; x.fillRect(47, 93, 18, 19);
+    x.fillStyle = '#7a4a24'; x.fillRect(48, 94, 7, 18); x.fillRect(57, 94, 7, 18);
+    x.fillStyle = '#f0c040'; x.fillRect(54, 102, 1, 3); x.fillRect(57, 102, 1, 3);
+    return c;
+  }
+  function makeCell() {
+    const c = mk(16, 12), x = c.getContext('2d');
+    x.fillStyle = K; x.fillRect(0, 2, 16, 10); x.fillStyle = '#c8a050'; x.fillRect(1, 3, 14, 8);
+    x.fillStyle = '#e0c070'; for (let i = 1; i < 15; i += 3) x.fillRect(i, 3 + (i % 2), 1, 6);
+    return c;
   }
 
   // ---------------- Bâtiments ----------------
@@ -808,14 +1011,16 @@ const GFX = (() => {
       dome1: makeDome('#4a7ac8'), dome2: makeDome('#d84848'), dome3: makeDome('#48a868'),
       shop: makeDome('#e8a020', true, 'BOUTIQUE'), inn: makeDome('#8a58c8', true, 'AUBERGE'),
       oolong: makeDome('#f080b0', true, 'OOLONG'),
-      cave: makeCave(), castle: makeCastle(), stall: makeStall(),
+      cave: makeCave(), castle: makeCastle(), stall: makeStall(), pagoda: makePagoda(),
     };
-    tiles.props = {};
+    tiles.deadTrees = [0, 1, 2].map(i => makeDeadTree(71 + i * 13));
+    tiles.props = { tombe: makeTomb(), paille: makeCell() };
+    tiles.props = tiles.props || {};
     for (const k of ['bed', 'table', 'cushion', 'shrine', 'pot', 'barrel', 'sign', 'well', 'throne', 'pillar', 'torch', 'tv', 'tent', 'campfire', 'chest', 'chestOpen']) tiles.props[k] = makeProp(k);
   }
 
   return {
-    TS, mk, rng, hash, init, tiles, char, monster, dragonBall, flash, mirror,
-    drawGrass, drawFlowers, drawTallGrass, drawGround, grassEdge, drawForest, drawCliff, drawCastleWall, drawInWall, drawBridge, drawFence, drawWater, THEMES,
+    TS, mk, rng, hash, init, tiles, char, monster, portrait, monPortrait, dragonBall, flash, mirror, renderGrid, shade,
+    drawGrass, drawFlowers, drawTallGrass, drawGround, grassEdge, drawForest, drawCliff, drawCastleWall, drawInWall, drawBridge, drawFence, drawWater, drawLava, drawFire, drawBars, THEMES,
   };
 })();
