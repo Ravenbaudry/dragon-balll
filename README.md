@@ -10,7 +10,20 @@ Il tourne dans le navigateur, sans aucune dépendance : HTML5 Canvas et JavaScri
 - **Le plus simple** : ouvre `index.html` dans un navigateur (double-clic).
 - **Ou avec un petit serveur local** : `npx serve .` (ou `python3 -m http.server`), puis ouvre l'adresse indiquée.
 - **Version fichier unique** : `node tools/standalone.js` génère `dragon-ball.html`, un seul fichier facile à partager.
-- **En ligne** : active GitHub Pages sur la branche (dossier racine) et le jeu sera jouable directement depuis le téléphone.
+- **En ligne et sur téléphone** : voir ci-dessous.
+
+### Mettre le jeu en ligne (GitHub Pages)
+
+1. Sur GitHub, ouvre le dépôt → **Settings** → **Pages**.
+2. Dans « Build and deployment », choisis **Deploy from a branch**, puis la branche du jeu et le dossier **/ (root)**, et clique sur **Save**.
+3. Après une minute, le jeu est disponible à l'adresse `https://<ton-pseudo>.github.io/dragon-balll/`.
+
+### L'installer sur téléphone (et jouer hors connexion)
+
+- **Android (Chrome)** : ouvre l'adresse du jeu, puis menu ⋮ → **Installer l'application** (ou « Ajouter à l'écran d'accueil »).
+- **iPhone (Safari)** : ouvre l'adresse, bouton **Partager** → **Sur l'écran d'accueil**.
+
+Le jeu s'ouvre alors en plein écran comme une vraie application, avec son icône. Une fois lancé une première fois, il fonctionne même sans connexion. Quand le jeu est mis à jour, la nouvelle version est téléchargée automatiquement dès qu'il y a du réseau.
 
 La partie se sauvegarde dans le navigateur (points de repos scintillants ou menu → Sauver).
 
@@ -100,7 +113,24 @@ js/minigames.js   mini-jeux d'entraînement de Tortue Géniale
 js/worldmap.js    carte du monde et voyage en Kinto'un
 js/maps.js        cartes, événements, scénario et choix
 js/main.js        boucle principale, écran titre, finale, épilogue et crédits
+manifest.webmanifest, sw.js, icons/   application installable et mode hors connexion
 tools/standalone.js  génère une version en un seul fichier HTML
+tests/            tests automatiques (voir ci-dessous)
 ```
 
-Tous les graphismes sont générés par le code au lancement : pixel art en grilles de caractères et tuiles procédurales. Il n'y a aucun fichier image.
+Tous les graphismes du jeu sont générés par le code au lancement : pixel art en grilles de caractères et tuiles procédurales. Les seules images sont les icônes de l'application.
+
+## Tests automatiques
+
+```
+npm install          # une seule fois (ESLint et Playwright)
+npm test             # tous les tests
+npm run test:static  # vérifications rapides, sans navigateur
+node tests/run.js features story-good story-bad
+```
+
+- **static** : syntaxe, lint, cartes (murs, sorties, atterrissages du Kinto'un), références aux ennemis, objets et sprites, musiques, fichiers du mode hors connexion.
+- **features** : menus, équipement, style, mini-jeux, voyage en Kinto'un, atelier de techniques, sauvegarde, mode hors connexion.
+- **story-good / story-bad** : toute l'aventure, du prologue aux crédits, avec les « bons » puis les « mauvais » choix.
+
+Sur GitHub, ces tests tournent tout seuls à chaque envoi (onglet **Actions**). En cas d'échec, les captures d'écran sont jointes au résultat.

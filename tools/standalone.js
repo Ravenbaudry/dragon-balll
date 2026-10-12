@@ -9,5 +9,7 @@ html = html.replace(/<script src="(js\/[^"]+)"><\/script>/g, (_, src) => {
   const code = fs.readFileSync(path.join(root, src), 'utf8').replace(/<\/script/gi, '<\\/script');
   return '<script>\n' + code + '\n</script>';
 });
+// la version fichier unique n'a ni manifeste ni service worker
+html = html.replace(/<!-- pwa -->[\s\S]*?<!-- \/pwa -->\n?/g, '');
 fs.writeFileSync(out, html);
 console.log('Écrit :', out, '(' + Math.round(html.length / 1024) + ' Ko)');

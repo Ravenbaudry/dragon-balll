@@ -1,0 +1,33 @@
+# Tests automatiques du jeu à chaque envoi (push) et pull request.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [static, features, story-good, story-bad]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dépendances
+        run: npm install --no-audit --no-fund
+      - name: Navigateur Chromium
+        if: matrix.suite != 'static'
+        run: npx playwright install --with-deps chromium
+      - name: Tests (${{ matrix.suite }})
+        run: node tests/run.js ${{ matrix.suite }}
+      - name: Captures d'écran en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-${{ matrix.suite }}
+          path: tests/output
