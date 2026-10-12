@@ -191,6 +191,30 @@ const GFX = (() => {
     }
     return out;
   }
+  // Le nuage magique Kinto'un
+  let cloud = null;
+  function kintoun() {
+    if (cloud) return cloud;
+    const ins = (x, y) => [[8, 9, 6], [16, 7, 7], [24, 9, 6], [13, 11, 5], [20, 11, 5]].some(([a, b, r]) => (x - a) ** 2 + (y - b) ** 2 <= r * r);
+    const c = mk(34, 18), x = c.getContext('2d');
+    for (let j = 0; j < 18; j++) for (let i = 0; i < 34; i++) {
+      if (ins(i, j)) { x.fillStyle = j < 7 ? '#fff8b0' : j < 12 ? '#f8e060' : '#e0a828'; x.fillRect(i, j, 1, 1); }
+      else if (ins(i - 1, j) || ins(i + 1, j) || ins(i, j - 1) || ins(i, j + 1)) { x.fillStyle = '#8a5a10'; x.fillRect(i, j, 1, 1); }
+    }
+    x.fillStyle = '#f8e060'; x.fillRect(29, 11, 4, 2); x.fillRect(31, 10, 3, 1); // traînée
+    return (cloud = c);
+  }
+  // Un héros assis sur le nuage
+  const riderCache = {};
+  function rider(key, dir = 'right') {
+    const k = key + dir;
+    if (riderCache[k]) return riderCache[k];
+    const c = mk(34, 40), x = c.getContext('2d');
+    x.drawImage(char(key)[dir][0], 5, 0);
+    x.drawImage(kintoun(), 0, 22);
+    return (riderCache[k] = c);
+  }
+
   const portraitCache = {};
   function portrait(name) {
     if (portraitCache[name]) return portraitCache[name];
@@ -1031,7 +1055,7 @@ const GFX = (() => {
   }
 
   return {
-    TS, mk, rng, hash, init, tiles, char, monster, portrait, monPortrait, dragonBall, flash, mirror, renderGrid, shade,
+    TS, mk, rng, hash, init, tiles, char, monster, portrait, monPortrait, kintoun, rider, dragonBall, flash, mirror, renderGrid, shade,
     drawGrass, drawFlowers, drawTallGrass, drawGround, grassEdge, drawForest, drawCliff, drawCastleWall, drawInWall, drawBridge, drawFence, drawWater, drawLava, drawFire, drawBars, THEMES,
   };
 })();

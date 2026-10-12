@@ -15,22 +15,7 @@ const Main = (() => {
     }
     ctx.drawImage(c, Math.round(cx - c.width * scale / 2), Math.round(y), c.width * scale, c.height * scale);
   }
-  let cloud = null;
-  function kintoun() {
-    if (cloud) return cloud;
-    const ins = (x, y) => [[8, 9, 6], [16, 7, 7], [24, 9, 6], [13, 11, 5], [20, 11, 5]].some(([a, b, r]) => (x - a) ** 2 + (y - b) ** 2 <= r * r);
-    cloud = (function () {
-      const c = GFX.mk(34, 18), x = c.getContext('2d');
-      for (let j = 0; j < 18; j++) for (let i = 0; i < 34; i++) {
-        if (ins(i, j)) { x.fillStyle = j < 7 ? '#fff8b0' : j < 12 ? '#f8e060' : '#e0a828'; x.fillRect(i, j, 1, 1); }
-        else if (ins(i - 1, j) || ins(i + 1, j) || ins(i, j - 1) || ins(i, j + 1)) { x.fillStyle = '#8a5a10'; x.fillRect(i, j, 1, 1); }
-      }
-      // traînée
-      x.fillStyle = '#f8e060'; x.fillRect(29, 11, 4, 2); x.fillRect(31, 10, 3, 1);
-      return c;
-    })();
-    return cloud;
-  }
+  const kintoun = () => GFX.kintoun();
   const stars = Array.from({ length: 70 }, (_, i) => [GFX.hash(i, 1) % SW, GFX.hash(i, 2) % 140, GFX.hash(i, 3) % 3]);
 
   // ---------------- Titre ----------------
@@ -552,6 +537,7 @@ const Main = (() => {
       }
       case 'gameover': updateGameOver(); break;
       case 'minigame': MiniGames.update(); break;
+      case 'worldmap': WorldMap.update(); break;
       case 'epilogue': updateEpilogue(); break;
       case 'ending': updateCredits(); break;
     }
@@ -566,6 +552,7 @@ const Main = (() => {
         break;
       case 'gameover': drawGameOver(); break;
       case 'minigame': MiniGames.draw(); break;
+      case 'worldmap': WorldMap.draw(); break;
       case 'epilogue': drawEpilogue(); break;
       case 'ending': drawCredits(); break;
     }

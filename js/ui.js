@@ -148,7 +148,7 @@ const UI = (() => {
   // ---------------- Menu principal (terrain) ----------------
   let menu = null;
   function openMenu() { menu = { sel: 0, sub: null }; SND.sfx('confirm'); }
-  const MENU_ITEMS = ['Objets', 'Techniques', 'Équipement', 'Équipe', 'Style', 'Journal', 'Boules', 'Sauver', 'Son'];
+  const MENU_ITEMS = ['Objets', 'Techniques', 'Équipement', 'Équipe', 'Style', 'Kinto\'un', 'Journal', 'Boules', 'Sauver', 'Son'];
   function memberCard(m, x, y, highlight) {
     const spr = GFX.char(lookKey(m));
     ctx.fillStyle = highlight ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0)'; ctx.fillRect(x, y, 158, 46);
@@ -165,20 +165,20 @@ const UI = (() => {
   function drawMenu() {
     win(4, 4, 170, 168);
     Game.party.forEach((m, i) => memberCard(m, 10, 10 + i * 52, menu.sub && menu.sub.pickMember && menu.sub.msel === i));
-    win(178, 4, 74, 128);
+    win(178, 4, 74, 142);
     MENU_ITEMS.forEach((s, i) => {
-      text(s, 192, 10 + i * 13, menu.sub ? '#a0a8c8' : '#fff');
+      const off = s === 'Kinto\'un' && !WorldMap.unlocked();
+      text(s, 192, 10 + i * 13, off ? '#6870a0' : menu.sub ? '#a0a8c8' : '#fff');
       if (!menu.sub && i === menu.sel) cursor(181, 10 + i * 13);
     });
-    win(178, 134, 74, 38);
-    text('Z', 184, 139, GRAY); FONT.drawRight(ctx, String(Game.zeni), 246, 139, YEL);
-    text(playTime(), 184, 153, '#c0c8e8');
-    FONT.drawRight(ctx, '★' + Game.balls.length + '/7', 246, 153, YEL);
+    win(178, 148, 74, 24);
+    text('Zénis', 184, 154, GRAY); FONT.drawRight(ctx, String(Game.zeni), 246, 154, YEL);
     win(4, 176, 248, 44);
     const loc = Field.map ? Field.map.name : '';
     if (!menu.sub) {
-      const hint = ['Utiliser un objet.', 'Voir et utiliser les techniques.', 'Armes, tenues et couvre-chefs.', 'Choisir les trois héros de l\'équipe active.', 'Personnaliser l\'apparence de Goku.', 'Quêtes en cours et liens avec tes amis.', 'Voir les Boules de Cristal (Dragon Radar).', 'Sauvegarder la partie.', 'Activer / couper le son (M).'][menu.sel];
+      const hint = ['Utiliser un objet.', 'Voir et utiliser les techniques.', 'Armes, tenues et couvre-chefs.', 'Choisir les trois héros de l\'équipe active.', 'Personnaliser l\'apparence de Goku.', WorldMap.unlocked() ? 'Voler vers un lieu déjà visité.' : 'Le nuage magique... il faudrait le trouver.', 'Quêtes en cours et liens avec tes amis.', 'Voir les Boules de Cristal (Dragon Radar).', 'Sauvegarder la partie.', 'Activer / couper le son (M).'][menu.sel];
       text(loc, 12, 182, YEL); text(hint, 12, 196);
+      FONT.drawRight(ctx, '★' + Game.balls.length + '/7   ' + playTime(), 244, 182, '#c0c8e8');
     } else menu.sub.draw();
   }
   function itemList() { const l = Object.keys(Game.items).filter(k => Game.items[k] > 0 && ITEMS[k]); return l.filter(k => !ITEMS[k].key).concat(l.filter(k => ITEMS[k].key)); }
@@ -577,6 +577,11 @@ const UI = (() => {
       else if (s === 'Équipe') menu.sub = subTeam();
       else if (s === 'Équipement') menu.sub = subEquip();
       else if (s === 'Style') menu.sub = subStyle();
+      else if (s === 'Kinto\'un') {
+        if (!WorldMap.unlocked()) { SND.sfx('buzz'); notify('Tu n\'as pas encore le nuage magique.', 80); return; }
+        menu = null;
+        Field.run(() => WorldMap.travel());
+      }
       else if (s === 'Journal') menu.sub = subJournal();
       else if (s === 'Sauver') {
         const ok = Game.save();

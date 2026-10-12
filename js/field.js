@@ -154,6 +154,7 @@ const Field = (() => {
   function load(id, tx, ty, dir = 'down', px, py) {
     const m = MAPS[id];
     F.map = m; F.mapId = id;
+    Game.flags['vu_' + id] = true; // lieux visités (voyage en Kinto'un)
     F.rows = m.rows.map(r => r.split(''));
     F.H = F.rows.length; F.W = Math.max(...m.rows.map(r => r.length));
     for (const r of F.rows) while (r.length < F.W) r.push('D');

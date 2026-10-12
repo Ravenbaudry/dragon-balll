@@ -55,6 +55,7 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
   
   Chaque héros peut s'entraîner. Battre son record rend plus fort, et un rang S rapporte un équipement exclusif.
 - **Équipement visible sur les sprites** : armes (bâton, sabre, gants), tenues (plastron, kimono de la Tortue, armure, carapace) et couvre-chefs (bandeaux, lunettes, casque à cornes). Ils apparaissent sur le terrain, en combat et dans les portraits (menu → Équipement).
+- **Voyage rapide en Kinto'un** (menu → Kinto'un) : une fois le nuage obtenu chez Tortue Géniale, on survole la carte du monde et on choisit un lieu déjà visité. Goku décolle, traverse la carte sur son nuage et atterrit près du point de repos.
 - **Personnalisation de Goku** (menu → Style) : couleur du kimono, de la ceinture, des bottes et des cheveux, queue de singe, emblème… et un style secret à débloquer.
 
 ### Et aussi
@@ -79,6 +80,7 @@ js/ui.js          fenêtres, dialogues et portraits, menu, journal, boutique
 js/field.js       exploration : cartes, collisions, PNJ, ennemis visibles
 js/battle.js      système de combat ATB
 js/minigames.js   mini-jeux d'entraînement de Tortue Géniale
+js/worldmap.js    carte du monde et voyage en Kinto'un
 js/maps.js        cartes, événements, scénario et choix
 js/main.js        boucle principale, écran titre, finale, épilogue et crédits
 tools/standalone.js  génère une version en un seul fichier HTML
