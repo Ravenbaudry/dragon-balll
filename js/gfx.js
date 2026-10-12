@@ -230,7 +230,7 @@ const GFX = (() => {
   }
 
   // Portrait de monstre : un cadrage 20x21 autour de la tête, agrandi en Scale2x.
-  const MON_POR = { ours: [3, 0], gyumao: [4, 0], volcan: [10, 1], puar: [-1, -2], umigame: [-1, -8], taureau: [2, 0], machine: [12, 0] };
+  const MON_POR = { oozaru: [2, 2], ours: [3, 0], gyumao: [4, 0], volcan: [10, 1], puar: [-1, -2], umigame: [-1, -8], taureau: [2, 0], machine: [12, 0] };
   function monPortrait(name) {
     const key = 'mon:' + name;
     if (portraitCache[key]) return portraitCache[key];

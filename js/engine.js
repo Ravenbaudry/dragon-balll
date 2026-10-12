@@ -141,7 +141,7 @@ const Game = {
     this.party = d.party; this.reserve = d.reserve || []; this.items = d.items; this.zeni = d.zeni; this.balls = d.balls; this.flags = d.flags;
     this.aff = d.aff || {}; this.karma = d.karma || 0; this.quests = d.quests || {}; this.playFrames = d.playFrames || 0;
     this.gear = d.gear || {}; this.train = d.train || {};
-    for (const m of this.allMembers()) refreshTechs(m);
+    for (const m of this.allMembers()) { refreshTechs(m); for (const d of m.custom || []) CustomTech.register(m, d); }
     // anciennes sauvegardes : Goku récupère son bâton
     if (!d.gear) { const g = this.member('goku'); if (g && !(g.equip && g.equip.arme)) equipItem(g, 'arme', 'nyoibo', true); }
     this.spawn = { mapId: d.mapId, x: d.x, y: d.y, dir: d.dir };

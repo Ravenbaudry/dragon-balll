@@ -160,6 +160,12 @@ const ENEMIES = {
   soldat: { name: 'Soldat de Pilaf', char: 'soldier', hp: 230, atk: 50, def: 22, spd: 15, xp: 82, zeni: 55, drop: ['super_tonique', 0.15] },
   shu: { name: 'Shu', char: 'shu', hp: 420, atk: 45, def: 20, spd: 18, xp: 140, zeni: 80, skills: [{ name: 'Lame Ninja', target: 'one', pow: 1.5, chance: 0.3 }] },
   mai: { name: 'Mai', char: 'mai', hp: 380, atk: 43, def: 18, spd: 16, xp: 140, zeni: 80, skills: [{ name: 'Rafale de Fusil', target: 'all', pow: 0.7, chance: 0.3 }] },
+  // Chapitre 7 : Goku transformé en singe géant. Seule la queue peut être vaincue.
+  oozaru: {
+    name: 'Goku (singe géant)', spr: 'oozaru', hp: 9999, atk: 54, def: 60, spd: 10, xp: 0, zeni: 0, boss: true, big: true, unkillable: true, slot: [176, 122],
+    skills: [{ name: 'Poing géant', target: 'one', pow: 1.7, chance: 0.3 }, { name: 'Rugissement', target: 'all', pow: 0.8, chance: 0.18 }, { name: 'Rayon buccal', target: 'all', pow: 1.3, chance: 0.12 }],
+  },
+  queue: { name: 'Queue', spr: 'queue', hp: 900, atk: 1, def: 12, spd: 1, xp: 650, zeni: 0, passive: true, kills: 'oozaru', slot: [206, 124] },
   machine: {
     name: 'Pilaf Machine', spr: 'machine', hp: 2300, atk: 56, def: 30, spd: 12, xp: 0, zeni: 0, boss: true, big: true,
     skills: [{ name: 'Missiles Pilaf', target: 'all', pow: 1.05, chance: 0.28 }, { name: 'Pince Broyeuse', target: 'one', pow: 1.8, chance: 0.25 }, { name: 'Laser Impérial', target: 'one', pow: 2.2, chance: 0.12 }],

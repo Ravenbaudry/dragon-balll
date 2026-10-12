@@ -78,7 +78,7 @@ const Main = (() => {
   function resetWorld() {
     Tasks.reset(); Battle.reset();
     Field.locks = 0; Field.battle = false; Field.camLock = false;
-    Shenron.active = false; epi = null;
+    Shenron.active = false; Moon.active = false; epi = null;
   }
   async function newGame() {
     resetWorld();
@@ -272,10 +272,11 @@ const Main = (() => {
     }));
     S.balls.forEach(b => { b.gone = true; });
     await Promise.all([Tasks.tween(S, { dark: wish === 'gohan' ? 0.4 : 0 }, 60), camPan(LOW, 50)]);
+    Game.flags.wish = wish;
     await afterWish(wish, pil, shu, mai);
+    await fullMoon(pil, shu, mai);
     await Tasks.tween(S, { dark: 0 }, 30);
     Game.setQuest('main', 'done', true);
-    Game.flags.wish = wish;
     await say('Bulma', 'Les Boules de Cristal se sont dispersées aux quatre coins du monde... Dans un an, elles redeviendront actives.');
     await say('Goku', 'Génial ! Alors on les cherchera encore ensemble ! Hein, Bulma ?');
     await say('Bulma', 'Hi hi... On verra, petit singe. On verra !');
@@ -394,9 +395,160 @@ const Main = (() => {
       await say('Oolong', 'Hé hé ! Elle est toute douce !');
       await say('Bulma', 'Le vœu le plus important du monde... gaspillé pour une culotte. Mais au moins, Pilaf n\'a rien eu !');
     }
-    await say('Pilaf', 'Grrr... Vous n\'avez pas fini d\'entendre parler de l\'empereur Pilaf ! Shu ! Mai ! On se retire !');
-    await Promise.all([pil, shu, mai].map(e => Field.walkTo(e, e.x - 10, e.y + 150, 2.4)));
+  }
+
+  // ---------------- Chapitre 7 : la pleine lune ----------------
+  const Moon = { active: false, a: 0, beat: 0, red: 0, open: 0 };
+  let cageCanvas = null;
+  function cageImg() { // la cage de Pilaf
+    if (cageCanvas) return cageCanvas;
+    const c = GFX.mk(84, 60), x = c.getContext('2d');
+    for (let i = 0; i < 12; i++) { const bx = 2 + i * 7; x.fillStyle = K; x.fillRect(bx - 1, 4, 4, 54); x.fillStyle = '#a8b0c8'; x.fillRect(bx, 5, 2, 52); x.fillStyle = '#e8ecff'; x.fillRect(bx, 5, 1, 52); }
+    x.fillStyle = K; x.fillRect(0, 0, 84, 7); x.fillRect(0, 53, 84, 7);
+    x.fillStyle = '#787ea0'; x.fillRect(1, 1, 82, 5); x.fillRect(1, 54, 82, 5);
+    x.fillStyle = '#c0c8e0'; x.fillRect(1, 1, 82, 1); x.fillRect(1, 54, 82, 1);
+    return (cageCanvas = c);
+  }
+  function drawMoon() {
+    const t = Game.frame;
+    ctx.globalAlpha = Moon.a;
+    const g = ctx.createLinearGradient(0, 0, 0, SH); g.addColorStop(0, '#02030e'); g.addColorStop(1, '#1a1c48');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH);
+    for (const [x, y, s] of stars) { if ((Math.floor(t / 20) + x) % 9 === 0) continue; ctx.fillStyle = s ? '#c0c8ff' : '#ffffff'; ctx.fillRect(x, y, 1, 1); }
+    const r = 44 + Moon.beat * 4;
+    ctx.fillStyle = 'rgba(255,250,210,0.12)'; ctx.beginPath(); ctx.arc(128, 76, r + 18, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,250,210,0.18)'; ctx.beginPath(); ctx.arc(128, 76, r + 8, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff8d8'; ctx.beginPath(); ctx.arc(128, 76, r, 0, 7); ctx.fill();
+    ctx.fillStyle = '#e8dcb0';
+    for (const [dx, dy, cr] of [[-14, -10, 9], [12, 6, 12], [-6, 18, 6], [18, -16, 5], [-22, 8, 4]]) { ctx.beginPath(); ctx.arc(128 + dx, 76 + dy, cr, 0, 7); ctx.fill(); }
+    // les nuages s'écartent
+    for (const side of [-1, 1]) {
+      const ox = 128 + side * (30 + Moon.open * 120);
+      ctx.fillStyle = '#10122e';
+      for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(ox + side * i * 16, 60 + (i % 3) * 14, 26, 0, 7); ctx.fill(); }
+    }
+    // Goku, de dos, regarde la lune
+    ctx.drawImage(GFX.char(charKey('goku')).up[0], 128 - 36, SH - 124, 72, 96);
+    if (Moon.red > 0) { ctx.fillStyle = 'rgba(220,0,0,' + (Moon.red * (0.22 + Moon.beat * 0.3)) + ')'; ctx.fillRect(0, 0, SW, SH); }
+    ctx.globalAlpha = 1;
+  }
+  async function fullMoon(pil, shu, mai) {
+    const S = Shenron, F = Field, has = id => !!Game.member(id);
+    if (Game.flags.wish === 'paix') await say('Pilaf', '*Bâille*... Vous êtes encore là, vous ? Shu, Mai... mettez-les dans la cage, que je fasse ma sieste tranquille...');
+    else await say('Pilaf', 'Grrr... Mon vœu ! Vous m\'avez volé MON vœu ! Vous allez me le payer ! Shu ! Mai ! LA CAGE !');
+    const cx = S.x + 44, cy = S.y + 24;
+    const spots = [[cx - 16, cy - 4], [cx + 12, cy - 10], [cx + 6, cy + 10]];
+    await Promise.all(F.actors.map((a, i) => F.walkTo(a, spots[i % 3][0], spots[i % 3][1], 1.8)));
+    F.actors.forEach(a => { a.dir = 'left'; });
+    SND.sfx('thunder');
+    const cage = F.addEntity({ kind: 'img', img: cageImg(), x: cx, y: cy + 16 - 130, sortOff: 40, solid: false });
+    await Tasks.tween(cage, { y: cy + 16 }, 18, 'in');
+    SND.sfx('bighit'); Game.shake = 18;
+    await say('Bulma', 'Kyaaa ! Une cage !');
+    await say('Pilaf', 'Ha ha ha ! Demain matin, au lever du soleil, je vous ferai rôtir avec ma loupe géante ! Bonne nuit, misérables !');
+    await Promise.all([pil, shu, mai].map(e => F.walkTo(e, e.x - 10, e.y + 150, 2.4)));
     pil.gone = shu.gone = mai.gone = true;
+    // ----- Chapitre 7 -----
+    await UI.chapter('Chapitre 7', 'La pleine lune');
+    Game.flags.ch7 = true;
+    SND.playMusic('sad');
+    await Tasks.tween(S, { dark: 0.35 }, 30);
+    await say(null, 'La nuit est tombée sur le château de Pilaf. Coincés dans la cage, nos héros attendent le matin...');
+    await say('Bulma', 'Super... Enfermés dans une cage, et demain on finit grillés au soleil !');
+    if (has('krillin')) await say('Krilin', 'Goku, tu ne peux pas tordre ces barreaux ?');
+    await say('Goku', 'J\'ai essayé... Ils sont trop solides. Et j\'ai trop faim pour réfléchir.');
+    if (has('oolong')) await say('Oolong', 'Et moi, je ne peux même pas me transformer : il y a trop peu de place là-dedans !');
+    const goku = Game.member('goku');
+    if (!styleOf(goku).tail) {
+      goku.style = Object.assign(styleOf(goku), { tail: 1 }); F.syncParty();
+      await say(null, 'La queue de Goku, jusque-là cachée sous sa ceinture, se met à frétiller...');
+    }
+    await say(null, 'Peu à peu, les nuages s\'écartent... et la lune apparaît.');
+    // ----- la lune -----
+    Object.assign(Moon, { active: true, a: 0, red: 0, beat: 0, open: 0 });
+    SND.stopMusic(true);
+    await Tasks.tween(Moon, { a: 1 }, 40);
+    await Tasks.tween(Moon, { open: 1 }, 70);
+    await say('Goku', 'Oh... La lune est toute ronde, ce soir. Elle est belle...');
+    if (Game.flags.wish === 'gohan') await say('Goku', '...Grand-père m\'a dit de ne jamais regarder la pleine lune. Oups.');
+    for (let i = 0; i < 4; i++) { // battements de cœur
+      Moon.beat = 1; Moon.red = Math.min(1, Moon.red + 0.3); SND.beat('k', 1); Tasks.tween(Moon, { beat: 0 }, 14);
+      await wait(14);
+      Moon.beat = 0.7; SND.beat('k', 0.8); Tasks.tween(Moon, { beat: 0 }, 14);
+      await wait(i < 3 ? 30 : 20);
+    }
+    await say('Bulma', 'Goku ? Goku, qu\'est-ce que tu as ?! Tes yeux... ils sont tout rouges !');
+    // ----- transformation -----
+    SND.sfx('roar'); Game.shake = 40;
+    UI.fade.color = '#ffffff'; UI.fade.v = 1;
+    Moon.active = false; S.dark = 0;
+    cage.gone = true;
+    const ga = F.actors.find(a => a.id === 'goku');
+    if (ga) ga.hidden = true;
+    const oz = F.addEntity({ kind: 'npc', id: 'oozaru', mon: 'oozaru', x: cx - 6, y: cy + 14, dir: 'left', solid: false });
+    const tail = F.addEntity({ kind: 'npc', id: 'oozaru_tail', mon: 'queue', x: cx + 22, y: cy + 15, dir: 'left', solid: false });
+    F.effects.push({ type: 'smoke', x: cx, y: cy - 10, t: 50 });
+    await UI.fadeTo(0, 30); UI.fade.color = '#000';
+    SND.sfx('roar'); Game.shake = 24;
+    SND.playMusic('boss');
+    await Promise.all(F.actors.filter(a => a.id !== 'goku').map((a, i) => F.walkTo(a, cx - 64 - (i % 2) * 18, cy - 20 + i * 18, 2.4)));
+    F.actors.forEach(a => { a.dir = 'right'; });
+    await say('Goku (singe géant)', 'GRAAAAAOOOOOH !');
+    Game.shake = 30;
+    await say('Bulma', 'Un... un singe géant ?! C\'est Goku ?!');
+    if (has('yamcha')) await say('Yamcha', 'Les légendes disaient vrai... Un monstre qui apparaît les nuits de pleine lune ! C\'est sa queue ! Il faut lui couper la queue !');
+    else await say('Krilin', 'C\'est la lune qui l\'a transformé ! Sa queue... Il faut viser sa queue !');
+    // ----- combat : Goku ne peut pas se battre contre lui-même -----
+    const party = Game.party, reserve = Game.reserve, all = party.concat(reserve);
+    const fighters = ['krillin', 'yamcha', 'bulma', 'oolong'].map(id => Game.member(id)).filter(Boolean).slice(0, 3);
+    Game.party = fighters; Game.reserve = all.filter(m => !fighters.includes(m));
+    F.syncParty();
+    let res;
+    do {
+      oz.visible = tail.visible = false;
+      res = await Battle.start(['oozaru', 'queue'], {
+        positions: [[oz.x, oz.y], [tail.x, tail.y]], music: 'boss', canFlee: false, spar: true,
+        intro: Game.flags.ozIntro ? null : async () => { Game.flags.ozIntro = true; await UI.say('Bulma', 'Frapper Goku ne sert à rien, il est bien trop solide ! Visez la QUEUE !'); },
+      });
+      oz.visible = tail.visible = true;
+      if (res === 'lose') await say('Bulma', 'Ouille... Il faut viser la queue, et rien d\'autre ! Allez, on recommence !');
+    } while (res !== 'win');
+    Game.party = party; Game.reserve = reserve;
+    Game.flags.oozaru = true;
+    // ----- qui coupe la queue ? -----
+    const opts = [];
+    if (has('yamcha')) opts.push(['yamcha', 'Yamcha : un coup de sabre !']);
+    if (has('oolong')) opts.push(['oolong', 'Oolong : se changer en ciseaux !']);
+    opts.push(['krillin', 'Krilin : un Kienzan bien précis !']);
+    opts.push(['bulma', 'Bulma : tirer de toutes ses forces !']);
+    const c = await UI.ask('Bulma', 'Il est sonné ! Vite, qui lui coupe la queue ?', opts.map(o => o[1]));
+    const who = opts[c][0];
+    Game.flags.tailCut = who;
+    if (who === 'yamcha') { await say('Yamcha', 'Désolé, Goku... HAAAA !'); SND.sfx('swing'); }
+    else if (who === 'oolong') { F.effects.push({ type: 'smoke', x: tail.x, y: tail.y - 14, t: 30 }); SND.sfx('door'); await say('Oolong', 'Transformation... en ciseaux géants ! Clic-clac !'); }
+    else if (who === 'krillin') { SND.sfx('disc'); await say('Krilin', 'Kienzan ! ... Pardon, Goku !'); }
+    else await say('Bulma', 'Hiiii... Mais lâche-moi ça, sale queue de singe ! ... Oh ! Elle s\'est détachée !');
+    Game.addAff(who, 1, true);
+    SND.sfx('bighit'); Game.shake = 20;
+    tail.gone = true;
+    F.effects.push({ type: 'smoke', x: oz.x, y: oz.y - 20, t: 60 });
+    await wait(20);
+    oz.gone = true;
+    goku.style = Object.assign(styleOf(goku), { tail: 0 });
+    F.syncParty();
+    const g2 = F.actors.find(a => a.id === 'goku');
+    if (g2) { g2.hidden = false; g2.x = oz.x; g2.y = oz.y; g2.dir = 'left'; }
+    await wait(40);
+    SND.playMusic('camp');
+    await say('Goku', 'Ouaaah... J\'ai super bien dormi ! ... Hein ? Pourquoi le château est tout cassé ?');
+    await say('Goku', 'Et... MA QUEUE ! Elle a disparu !');
+    await say('Bulma', 'Euh... Elle est tombée toute seule ! Ça arrive, à ton âge !');
+    await say('Goku', 'Ah bon ? Bah, tant pis. Ça me fera moins de poils à laver !');
+    await say(null, '(Bulma repense à la légende du monstre qui, une nuit de pleine lune, ravagea le Mont Paozou... Mieux vaut que Goku ne sache jamais.)');
+    await UI.fadeTo(1, 40, '#f8c890');
+    await say(null, 'Le soleil se lève sur les ruines du château de Pilaf.');
+    await UI.fadeTo(0, 40); UI.fade.color = '#000';
+    await say('Pilaf', 'MON CHÂTEAU ! MON BEAU CHÂTEAU ! ... Vous me le paierez, bande de vauriens !');
   }
 
   function endingRank() {
@@ -438,7 +590,7 @@ const Main = (() => {
     if (q('marchand') === 'done') others.push('Le marchand raconte vos exploits sur toutes les routes.');
     if (q('boussole') === 'done') others.push('Le nomade du désert ne s\'est plus jamais perdu.');
     if (others.length) out.push({ title: 'Et les autres...', mon: F.bearSpared || F.bearChased ? 'ours' : null, text: others.slice(0, 3).join(' ') });
-    out.push({ title: 'L\'empereur Pilaf', chars: ['shu', 'pilaf', 'mai'], text: 'Dans son château, l\'empereur Pilaf prépare déjà sa revanche. « Dans un an, les Boules de Cristal seront à moi ! »' });
+    out.push({ title: 'L\'empereur Pilaf', chars: ['shu', 'pilaf', 'mai'], text: F.oozaru ? 'Dans les ruines de son château, piétiné par un singe géant, l\'empereur Pilaf prépare déjà sa revanche. « Dans un an, les Boules seront à moi ! »' : 'Dans son château, l\'empereur Pilaf prépare déjà sa revanche. « Dans un an, les Boules de Cristal seront à moi ! »' });
     const nq = ['tortue', 'grandmere', 'marchand', 'boussole', 'gyumao'].filter(id => q(id) === 'done').length;
     out.push({ title: end.title, chars: ['goku'], cloud: true, text: end.text, foot: 'Quêtes accomplies : ' + nq + '/5   —   Karma : ' + Game.karma });
     return out;
@@ -548,6 +700,7 @@ const Main = (() => {
       case 'field':
         Field.draw();
         if (Shenron.active) drawShenron(Field.cx, Field.cy);
+        if (Moon.active) drawMoon();
         if (Field.battle) Battle.drawUI();
         break;
       case 'gameover': drawGameOver(); break;
@@ -577,7 +730,7 @@ const Main = (() => {
     GFX.init();
     requestAnimationFrame(loop);
   }
-  return { boot, gameOver, shenronFinale, Shenron, newGame, continueGame };
+  return { boot, gameOver, shenronFinale, Shenron, Moon, newGame, continueGame };
 })();
 const Shenron = Main.Shenron;
 Main.boot();

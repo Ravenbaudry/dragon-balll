@@ -41,7 +41,7 @@ const Battle = (() => {
       B.party = Game.party.map((m, i) => partyC(m, F.actors[i]));
       const slots = E_SLOTS[Math.min(5, group.length)];
       group.forEach((id, i) => {
-        let [sx, sy] = ENEMIES[id].big ? [186, 124] : slots[i];
+        let [sx, sy] = ENEMIES[id].slot || (ENEMIES[id].big ? [186, 124] : slots[i]);
         const e = enemyC(id, sx + cx, sy + cy);
         if (opts.ent && i === 0) { e.x = opts.ent.x; e.y = opts.ent.y; }
         else if (opts.positions && opts.positions[i]) { e.x = opts.positions[i][0]; e.y = opts.positions[i][1]; }
@@ -88,7 +88,7 @@ const Battle = (() => {
   function center(c) { return [c.x, c.y - spriteH(c) / 2 - c.z]; }
   function damage(t, n, opts = {}) {
     if (t.dead || (t.side === 'p' && t.hp <= 0)) return;
-    t.hp = Math.max(0, t.hp - n);
+    t.hp = Math.max(t.side === 'e' && t.d.unkillable ? 1 : 0, t.hp - n); // le singe géant ne tombe pas
     pop(t, n, opts.col || '#fff');
     t.flash = 10;
     if (opts.big) Game.shake = 8;
@@ -105,6 +105,8 @@ const Battle = (() => {
   function onKO(t) {
     if (t.side === 'e') {
       t.queued = false; t.atb = 0;
+      // la queue coupée, le singe géant s'effondre aussi
+      if (t.d.kills) for (const o of B.enemies) if (o.id === t.d.kills && !o.dead && o.hp > 0) { o.hp = 0; onKO(o); }
       (async () => {
         SND.sfx('miss');
         for (let i = 0; i < 20; i++) { t.alpha = (i % 2) ? 0.3 : 0.9; await wait(2); }
@@ -137,9 +139,9 @@ const Battle = (() => {
       case 'boom': {
         const x = f.x - cx, y = f.y - cy, life = f.life || 24, p = t / life, r = (f.r || 14) * Math.min(1, p * 2.2);
         ctx.globalAlpha = 1 - Math.max(0, p - 0.5) * 2;
-        ctx.fillStyle = '#e04010'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-        ctx.fillStyle = '#f8a020'; ctx.beginPath(); ctx.arc(x, y, r * 0.72, 0, 7); ctx.fill();
-        ctx.fillStyle = '#fff0a0'; ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, 7); ctx.fill();
+        ctx.fillStyle = f.c1 || '#e04010'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+        ctx.fillStyle = f.c2 || '#f8a020'; ctx.beginPath(); ctx.arc(x, y, r * 0.72, 0, 7); ctx.fill();
+        ctx.fillStyle = f.c3 || '#fff0a0'; ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, 7); ctx.fill();
         ctx.globalAlpha = 1;
         return t < life;
       }
@@ -154,9 +156,9 @@ const Battle = (() => {
         ctx.save(); ctx.translate(x1, y1); ctx.rotate(ang);
         ctx.fillStyle = f.c1 || '#3070f8'; ctx.fillRect(0, -w, len, w * 2);
         ctx.fillStyle = f.c2 || '#80c8ff'; ctx.fillRect(0, -w * 0.62, len, w * 1.24);
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, -w * 0.28, len, w * 0.56);
+        ctx.fillStyle = f.c3 || '#ffffff'; ctx.fillRect(0, -w * 0.28, len, w * 0.56);
         ctx.fillStyle = f.c2 || '#80c8ff'; ctx.beginPath(); ctx.arc(len, 0, w * 1.5, 0, 7); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(len, 0, w * 0.9, 0, 7); ctx.fill();
+        ctx.fillStyle = f.c3 || '#fff'; ctx.beginPath(); ctx.arc(len, 0, w * 0.9, 0, 7); ctx.fill();
         ctx.fillStyle = f.c2 || '#80c8ff'; ctx.beginPath(); ctx.arc(0, 0, w * 1.3, 0, 7); ctx.fill();
         ctx.restore();
         return t < life;
@@ -177,15 +179,15 @@ const Battle = (() => {
         const life = f.life || 16, p = Math.min(1, t / life);
         const x = f.x1 + (f.x2 - f.x1) * p - cx, y = f.y1 + (f.y2 - f.y1) * p - cy - Math.sin(p * Math.PI) * (f.arc || 0);
         ctx.fillStyle = f.c || '#ffe060'; ctx.beginPath(); ctx.arc(x, y, f.r || 3, 0, 7); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, (f.r || 3) * 0.5, 0, 7); ctx.fill();
+        ctx.fillStyle = f.c2 || '#fff'; ctx.beginPath(); ctx.arc(x, y, (f.r || 3) * 0.5, 0, 7); ctx.fill();
         return t < life;
       }
       case 'disc': {
         const life = f.life || 24, p = Math.min(1, t / life);
         const x = f.x1 + (f.x2 - f.x1) * p - cx, y = f.y1 + (f.y2 - f.y1) * p - cy;
-        const w = 9 + Math.sin(t * 0.9) * 2;
-        ctx.fillStyle = '#f8c020'; ctx.beginPath(); ctx.ellipse(x, y, w, 3, 0, 0, 7); ctx.fill();
-        ctx.fillStyle = '#fff8b0'; ctx.beginPath(); ctx.ellipse(x, y, w * 0.6, 1.5, 0, 0, 7); ctx.fill();
+        const w = (f.w || 9) + Math.sin(t * 0.9) * 2;
+        ctx.fillStyle = f.c1 || '#f8c020'; ctx.beginPath(); ctx.ellipse(x, y, w, 3, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = f.c2 || '#fff8b0'; ctx.beginPath(); ctx.ellipse(x, y, w * 0.6, 1.5, 0, 0, 7); ctx.fill();
         return t < life;
       }
       case 'sparkle': {
@@ -304,6 +306,10 @@ const Battle = (() => {
     else if (T.target === 'enemy') targets = [retarget(target, 'e')].filter(Boolean);
     else targets = [target];
     if (!targets.length) return;
+    if (T.custom) { // technique inventée par le joueur (voir techs.js)
+      await CustomTech.run(T, a, targets, { fx, wait, damage, heal, center, kiDmg, physDmg, melee, pop, party: () => B.party });
+      return;
+    }
     switch (T.anim) {
       case 'staff': {
         const t = targets[0];
@@ -761,7 +767,7 @@ const Battle = (() => {
   function openMenu(c) { B.menu = { who: c, level: 'cmd', sel: 0, lsel: 0, scroll: 0, list: [], pending: null, tsel: 0, cands: [] }; SND.sfx('cursor'); }
   function targetCands(type, c) {
     switch (type) {
-      case 'enemy': return livingEnemies().sort((a, b) => a.y - b.y).map(e => [e]);
+      case 'enemy': return livingEnemies().sort((a, b) => (a.d.unkillable ? 1 : 0) - (b.d.unkillable ? 1 : 0) || a.y - b.y).map(e => [e]); // le singe géant passe en dernier
       case 'allEnemies': return [livingEnemies()];
       case 'ally': return B.party.filter(p => p.hp > 0).map(p => [p]);
       case 'allyKO': return B.party.filter(p => p.hp <= 0).map(p => [p]);
@@ -857,7 +863,7 @@ const Battle = (() => {
         if (c.atb >= 100 && !B.ready.includes(c)) B.ready.push(c);
       }
       for (const e of livingEnemies()) {
-        if (e.queued) continue;
+        if (e.queued || e.d.passive) continue;
         if (e.stun > 0) { e.stun--; continue; }
         e.atb += (e.spd + 18) / 45 * (B.boss ? 0.95 : 0.9);
         if (e.atb >= 100) { e.atb = 100; e.queued = true; B.actions.push({ kind: 'enemy', actor: e }); }

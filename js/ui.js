@@ -48,7 +48,7 @@ const UI = (() => {
     'Garçon': 'villM3', 'Fillette': 'villF1', 'Garde': 'villM2', 'Nomade': 'villM1', 'Soldat': 'soldier', 'Chef Brigand': 'brigand',
     'Grand-mère': 'elder', 'Bandit': 'bandit', 'Mère': 'villF1',
     'Ours Brigand': 'mon:ours', 'Tortue': 'mon:umigame', 'Gyumao': 'mon:gyumao', 'Esprit du Volcan': 'mon:volcan', 'Puar': 'mon:puar',
-    'Oolong Monstre': 'mon:taureau',
+    'Oolong Monstre': 'mon:taureau', 'Goku (singe géant)': 'mon:oozaru',
   };
   function portraitFor(name) {
     if (!name) return null;
@@ -240,7 +240,8 @@ const UI = (() => {
   }
   function subTechs() {
     return {
-      msel: 0, pickMember: true, sel: 0, target: false, tsel: 0,
+      msel: 0, pickMember: true, sel: 0, target: false, tsel: 0, pop: null,
+      list(m) { return m.techs.concat((m.custom || []).length < MAX_CUSTOM ? ['__new'] : []); },
       update() {
         const m = Game.party[this.msel];
         if (this.pickMember) {
@@ -250,7 +251,22 @@ const UI = (() => {
           if (Input.pressed('a')) { this.pickMember = false; this.sel = 0; SND.sfx('confirm'); }
           return;
         }
-        const list = m.techs;
+        const list = this.list(m);
+        this.sel = clamp(this.sel, 0, list.length - 1);
+        if (this.pop) { // technique perso : utiliser, modifier, supprimer
+          const P = this.pop, n = P.opts.length;
+          if (Input.repeat('up')) { P.sel = (P.sel + n - 1) % n; SND.sfx('cursor'); }
+          if (Input.repeat('down')) { P.sel = (P.sel + 1) % n; SND.sfx('cursor'); }
+          if (Input.pressed('b')) { this.pop = null; SND.sfx('cancel'); return; }
+          if (!Input.pressed('a')) return;
+          const o = P.opts[P.sel], T = TECHS[list[this.sel]];
+          if (o === 'Utiliser') { this.pop = null; if (m.ki >= T.ki && m.hp > 0) { this.target = true; this.tsel = 0; SND.sfx('confirm'); } else SND.sfx('buzz'); }
+          else if (o === 'Modifier') { this.pop = null; menu.sub = subTechEditor(m, T.custom, this); SND.sfx('confirm'); }
+          else if (o === 'Supprimer') { P.opts = ['Oui, supprimer', 'Non']; P.sel = 1; P.confirm = true; SND.sfx('cursor'); }
+          else if (o === 'Oui, supprimer') { CustomTech.remove(m, T.custom); this.pop = null; this.sel = Math.max(0, this.sel - 1); SND.sfx('cancel'); notify('Technique oubliée.', 70); }
+          else { this.pop = null; SND.sfx('cancel'); }
+          return;
+        }
         if (this.target) {
           if (Input.repeat('up')) { this.tsel = (this.tsel + Game.party.length - 1) % Game.party.length; SND.sfx('cursor'); }
           if (Input.repeat('down')) { this.tsel = (this.tsel + 1) % Game.party.length; SND.sfx('cursor'); }
@@ -272,35 +288,222 @@ const UI = (() => {
         if (Input.repeat('down')) { this.sel = (this.sel + 1) % list.length; SND.sfx('cursor'); }
         if (Input.pressed('b')) { this.pickMember = true; SND.sfx('cancel'); }
         if (Input.pressed('a')) {
-          const t = TECHS[list[this.sel]];
+          const id = list[this.sel];
+          if (id === '__new') { menu.sub = subTechEditor(m, null, this); SND.sfx('confirm'); return; }
+          const t = TECHS[id];
+          if (t.custom) { this.pop = { sel: 0, opts: (t.field ? ['Utiliser'] : []).concat(['Modifier', 'Supprimer', 'Retour']) }; SND.sfx('confirm'); return; }
           if (t.field && m.ki >= t.ki && m.hp > 0) { this.target = true; this.tsel = 0; SND.sfx('confirm'); } else SND.sfx('buzz');
         }
       },
       draw() {
         const m = Game.party[this.msel];
         if (this.pickMember) { cursor(2, 26 + this.msel * 52); text('Techniques de qui ?', 12, 182, YEL); return; }
-        const list = m.techs;
+        const list = this.list(m);
         const duals = DUALS.filter(d => d.members.every(id => Game.member(id)) && d.members.includes(m.id) && d.req.every((r, i) => Game.member(d.members[i]).techs.includes(r)));
-        const rows = list.length + duals.length;
-        win(40, 30, 176, rows * 12 + 10 + (duals.length ? 4 : 0));
-        list.forEach((id, i) => {
-          const t = TECHS[id];
-          text(t.name, 58, 35 + i * 12, m.ki >= t.ki ? (t.field ? '#fff' : '#c0c8e8') : '#7078a0');
-          FONT.drawRight(ctx, t.ki + ' Ki', 208, 35 + i * 12, CYAN);
-          if (i === this.sel) cursor(46, 35 + i * 12);
+        const rows = Math.min(list.length, 9) + duals.length;
+        win(40, 14, 176, rows * 12 + 10 + (duals.length ? 4 : 0));
+        this.scroll = clamp(this.scroll || 0, Math.max(0, this.sel - 8), this.sel);
+        list.slice(this.scroll, this.scroll + 9).forEach((id, j) => {
+          const i = j + this.scroll, y = 19 + j * 12;
+          if (id === '__new') { text('+ Créer une technique', 58, y, i === this.sel ? '#a0ffa0' : GREEN); }
+          else {
+            const t = TECHS[id];
+            if (t.custom) { const C = TECH_COLORS[t.custom.color]; ctx.fillStyle = '#000'; ctx.fillRect(48, y + 2, 7, 7); ctx.fillStyle = C[2]; ctx.fillRect(49, y + 3, 5, 5); }
+            text(t.name, 58, y, m.ki >= t.ki ? (t.custom ? '#ffd8a8' : t.field ? '#fff' : '#c0c8e8') : '#7078a0');
+            FONT.drawRight(ctx, t.ki + ' Ki', 208, y, CYAN);
+          }
+          if (i === this.sel) cursor(44, y);
         });
         duals.forEach((d, j) => {
-          const y = 39 + (list.length + j) * 12;
+          const y = 23 + (Math.min(list.length, 9) + j) * 12;
           text(d.name, 58, y, '#f8c0f0');
           const other = d.members.find(id => id !== m.id);
           FONT.drawRight(ctx, '+' + MEMBERS[other].name, 208, y, '#c8a0e0');
         });
-        const t = TECHS[list[this.sel]];
-        text(t.desc, 12, 182);
-        text(this.target ? 'Sur qui ?' : (t.field ? 'Z : utiliser' : 'Utilisable en combat'), 12, 196, this.target ? YEL : GRAY);
+        const id = list[this.sel];
+        if (this.pop) {
+          const P = this.pop;
+          win(150, 60, 96, P.opts.length * 12 + 10);
+          P.opts.forEach((o, i) => { text(o, 166, 65 + i * 12, i === P.sel ? '#fff' : '#c0c8e8'); if (i === P.sel) cursor(154, 65 + i * 12); });
+        }
+        if (id === '__new') { text('Invente ta propre technique : forme, couleurs, coût...', 12, 182); text('Jusqu\'à ' + MAX_CUSTOM + ' techniques perso par héros.', 12, 196, GRAY); }
+        else {
+          const t = TECHS[id];
+          text(t.desc, 12, 182);
+          text(this.target ? 'Sur qui ?' : t.custom ? 'Z : options' : (t.field ? 'Z : utiliser' : 'Utilisable en combat'), 12, 196, this.target ? YEL : GRAY);
+        }
         if (this.target) cursor(2, 26 + this.tsel * 52);
       },
     };
+  }
+
+  // ---------------- Atelier : création de techniques ----------------
+  const KB_ROWS = ['ABCDEFGHIJKLM', 'NOPQRSTUVWXYZ', 'abcdefghijklm', 'nopqrstuvwxyz', 'éèêàçôïû\'-!.0'];
+  const KB_BTNS = ['Espace', 'Effacer', 'OK'];
+  function subTechEditor(m, orig, back) {
+    const BOX = { x: 10, y: 24, w: 118, h: 86 };
+    const FIELDS = ['name', 'form', 'target', 'color', 'glow', 'size', 'effect', 'cost', 'ok'];
+    const LABELS = { name: 'Nom', form: 'Forme', target: 'Cible', color: 'Couleur', glow: 'Éclat', size: 'Taille', effect: 'Effet', cost: 'Coût', ok: '' };
+    let keyHook = null;
+    const S = {
+      sel: 0, d: orig ? Object.assign({}, orig) : CustomTech.fresh(), kb: null, P: null,
+      rebuild() { this.P = CustomTech.preview(this.d, m, BOX); },
+      fix() { // garde des choix compatibles entre eux
+        const d = this.d, F = TECH_FORMS[d.form];
+        if (!F.targets.includes(d.target)) d.target = F.targets[0];
+        if (!CustomTech.effects(d).includes(d.effect)) d.effect = 'none';
+        d.cost = clamp(Math.max(d.cost, TECH_EFFECTS[d.effect].cost + 2), COST_MIN, COST_MAX);
+      },
+      change(dx) {
+        const d = this.d, f = FIELDS[this.sel];
+        const cyc = (arr, v) => arr[(arr.indexOf(v) + dx + arr.length) % arr.length];
+        if (f === 'name') d.name = CustomTech.randomName();
+        else if (f === 'form') d.form = cyc(TECH_FORM_KEYS, d.form);
+        else if (f === 'target') d.target = cyc(TECH_FORMS[d.form].targets, d.target);
+        else if (f === 'color') d.color = (d.color + dx + TECH_COLORS.length) % TECH_COLORS.length;
+        else if (f === 'glow') d.glow = (d.glow + dx + TECH_COLORS.length) % TECH_COLORS.length;
+        else if (f === 'size') d.size = (d.size + dx + 3) % 3;
+        else if (f === 'effect') d.effect = cyc(CustomTech.effects(d), d.effect);
+        else if (f === 'cost') d.cost = clamp(d.cost + dx, COST_MIN, COST_MAX);
+        else return;
+        this.fix(); this.rebuild(); SND.sfx('cursor');
+      },
+      openKb() {
+        this.kb = { text: this.d.name, old: this.d.name, row: 0, col: 0 };
+        keyHook = e => { // saisie au clavier physique
+          if (!this.kb) return;
+          const k = e.key;
+          if (k === 'Enter') { this.closeKb(); }
+          else if (k === 'Escape') { this.kb.text = this.kb.old; this.closeKb(); }
+          else if (k === 'Backspace') { this.kb.text = this.kb.text.slice(0, -1); SND.sfx('cursor'); }
+          else if (k.length === 1 && /[\p{L}\d '!.\-]/u.test(k)) { if (this.kb.text.length < 16) this.kb.text += k; SND.sfx('cursor'); }
+          else return;
+          e.preventDefault(); e.stopImmediatePropagation();
+        };
+        window.addEventListener('keydown', keyHook, true);
+      },
+      closeKb() {
+        if (keyHook) { window.removeEventListener('keydown', keyHook, true); keyHook = null; }
+        const t = this.kb.text.trim();
+        this.d.name = t || this.kb.old;
+        this.kb = null;
+        SND.sfx('confirm');
+        Input.clear();
+      },
+      updateKb() {
+        const K2 = this.kb, rows = KB_ROWS.length + 1;
+        if (Input.repeat('up')) { K2.row = (K2.row + rows - 1) % rows; SND.sfx('cursor'); }
+        if (Input.repeat('down')) { K2.row = (K2.row + 1) % rows; SND.sfx('cursor'); }
+        const w = K2.row === KB_ROWS.length ? KB_BTNS.length : 13;
+        if (Input.repeat('left')) { K2.col = (Math.min(K2.col, w - 1) + w - 1) % w; SND.sfx('cursor'); }
+        if (Input.repeat('right')) { K2.col = (Math.min(K2.col, w - 1) + 1) % w; SND.sfx('cursor'); }
+        K2.col = Math.min(K2.col, w - 1);
+        if (Input.pressed('b')) { K2.text = K2.text.slice(0, -1); SND.sfx('cancel'); }
+        if (Input.pressed('a')) {
+          if (K2.row === KB_ROWS.length) {
+            const b = KB_BTNS[K2.col];
+            if (b === 'OK') { this.closeKb(); return; }
+            if (b === 'Effacer') K2.text = K2.text.slice(0, -1);
+            else if (K2.text.length < 16) K2.text += ' ';
+          } else if (K2.text.length < 16) K2.text += KB_ROWS[K2.row][K2.col];
+          SND.sfx('cursor');
+        }
+      },
+      update() {
+        if (this.P) CustomTech.stepPreview(this.P);
+        if (this.kb) { this.updateKb(); return; }
+        const n = FIELDS.length;
+        if (Input.repeat('up')) { this.sel = (this.sel + n - 1) % n; SND.sfx('cursor'); }
+        if (Input.repeat('down')) { this.sel = (this.sel + 1) % n; SND.sfx('cursor'); }
+        if (Input.repeat('left')) this.change(-1);
+        if (Input.repeat('right')) this.change(1);
+        if (Input.pressed('b')) { menu.sub = back; SND.sfx('cancel'); return; }
+        if (Input.pressed('a')) {
+          const f = FIELDS[this.sel];
+          if (f === 'name') { this.openKb(); SND.sfx('confirm'); }
+          else if (f === 'ok') {
+            const id = CustomTech.save(m, this.d);
+            back.sel = m.techs.indexOf(id);
+            menu.sub = back;
+            SND.sfx('levelup');
+            notify((orig ? 'Technique modifiée : ' : 'Nouvelle technique : ') + this.d.name + ' !', 110);
+          } else this.change(1);
+        }
+      },
+      draw() {
+        const d = this.d;
+        win(4, 4, 248, 168);
+        FONT.drawCentered(ctx, 'Atelier de techniques : ' + m.name, 128, 9, YEL);
+        ctx.fillStyle = '#000'; ctx.fillRect(BOX.x - 1, BOX.y - 1, BOX.w + 2, BOX.h + 2);
+        if (this.P) CustomTech.drawPreview(this.P);
+        // résumé
+        const st = CustomTech.stars(d), est = CustomTech.estimate(m, d), heal = CustomTech.isHeal(d);
+        text('Coût', 12, 114, GRAY); FONT.drawRight(ctx, d.cost + ' Ki', 126, 114, CYAN);
+        text('Puissance', 12, 126, GRAY); FONT.drawRight(ctx, '★'.repeat(st) + '☆'.repeat(5 - st), 126, 126, YEL);
+        text(heal ? 'Soin' : 'Dégâts', 12, 138, GRAY); FONT.drawRight(ctx, '≈ ' + est, 126, 138, '#fff');
+        if (d.cost > m.maxki) text('Ki max trop faible !', 12, 152, RED);
+        else text('Ki de ' + m.name + ' : ' + m.maxki, 12, 152, GRAY);
+        // réglages
+        FIELDS.forEach((f, i) => {
+          const y = 24 + i * 15, on = i === this.sel;
+          if (on) { ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(134, y - 2, 114, 13); cursor(134, y); }
+          if (f === 'ok') { FONT.drawCentered(ctx, orig ? 'Enregistrer' : 'Créer la technique', 194, y, on ? GREEN : '#c0f0c0'); return; }
+          text(LABELS[f], 144, y, on ? '#fff' : GRAY);
+          let v = '';
+          if (f === 'name') v = d.name;
+          else if (f === 'form') v = TECH_FORMS[d.form].name;
+          else if (f === 'target') v = TARGET_NAMES[d.target];
+          else if (f === 'color' || f === 'glow') {
+            const C = TECH_COLORS[f === 'color' ? d.color : d.glow];
+            v = C[0];
+            const w = FONT.measure(v);
+            ctx.fillStyle = '#000'; ctx.fillRect(244 - w - 11, y + 1, 9, 9); ctx.fillStyle = C[1]; ctx.fillRect(244 - w - 10, y + 2, 7, 7); ctx.fillStyle = C[2]; ctx.fillRect(244 - w - 8, y + 4, 3, 3);
+          } else if (f === 'size') v = TECH_SIZES[d.size];
+          else if (f === 'effect') v = TECH_EFFECTS[d.effect].name;
+          else if (f === 'cost') v = d.cost + ' Ki';
+          FONT.drawRight(ctx, v, 246, y, on ? YEL : '#e0e4ff');
+        });
+        // aide
+        const f = FIELDS[this.sel];
+        const help = {
+          name: ['Le nom crié pendant l\'attaque.', 'Z : écrire le nom   Gauche/Droite : au hasard'],
+          form: [TECH_FORMS[d.form].desc, 'Gauche/Droite : changer la forme'],
+          target: ['Qui est touché par la technique.', 'Viser tout le monde réduit la puissance.'],
+          color: ['La couleur principale de l\'énergie.', 'Gauche/Droite : changer'],
+          glow: ['La couleur du cœur et de l\'éclat.', 'Gauche/Droite : changer'],
+          size: ['La taille de l\'effet (purement visuelle).', 'Gauche/Droite : changer'],
+          effect: [TECH_EFFECTS[d.effect].desc, 'Un effet coûte du Ki (' + TECH_EFFECTS[d.effect].cost + ') sans ajouter de puissance.'],
+          cost: ['Plus la technique coûte de Ki, plus elle est puissante.', 'Gauche/Droite : ajuster (' + COST_MIN + ' à ' + COST_MAX + ')'],
+          ok: [orig ? 'Enregistrer les changements.' : 'Ajouter la technique à ' + m.name + '.', 'X : annuler'],
+        }[f];
+        text(help[0], 12, 182); text(help[1], 12, 196, GRAY);
+        if (this.kb) this.drawKb();
+      },
+      drawKb() {
+        const K2 = this.kb;
+        ctx.fillStyle = 'rgba(0,0,20,0.5)'; ctx.fillRect(0, 0, SW, SH);
+        win(16, 30, 224, 140);
+        FONT.drawCentered(ctx, 'Nom de la technique', 128, 36, YEL);
+        ctx.fillStyle = '#0c1040'; ctx.fillRect(40, 50, 176, 14);
+        const blink = Math.floor(Game.frame / 15) % 2 ? '_' : '';
+        FONT.drawCentered(ctx, K2.text + blink, 128, 52, '#fff');
+        KB_ROWS.forEach((r, j) => [...r].forEach((ch, i) => {
+          const x = 30 + i * 15, y = 72 + j * 13, on = K2.row === j && K2.col === i;
+          if (on) { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x - 3, y - 2, 13, 12); }
+          FONT.drawCentered(ctx, ch, x + 3, y, on ? YEL : '#e0e4ff');
+        }));
+        KB_BTNS.forEach((b, i) => {
+          const x = 40 + i * 62, y = 140, on = K2.row === KB_ROWS.length && K2.col === i;
+          ctx.fillStyle = on ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)'; ctx.fillRect(x, y - 2, 54, 13);
+          FONT.drawCentered(ctx, b, x + 27, y, on ? YEL : '#fff');
+        });
+        win(4, 176, 248, 44);
+        text('Tape au clavier, ou choisis les lettres avec Z.', 12, 182, '#fff');
+        text('X : effacer   Entrée : valider (' + K2.text.length + '/16)', 12, 196, GRAY);
+      },
+    };
+    S.fix(); S.rebuild();
+    return S;
   }
   function subBalls() {
     return {

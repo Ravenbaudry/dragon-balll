@@ -37,13 +37,29 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 
 ### Une histoire avec des choix
 
-- **Un prologue et 6 chapitres** : maison de Goku, forêt de Paozou, Kame House, village d'Aru, désert de Diablo, Mont Frypan et château de Pilaf.
+- **Un prologue et 7 chapitres** : maison de Goku, forêt de Paozou, Kame House, village d'Aru, désert de Diablo, Mont Frypan, château de Pilaf et la nuit de pleine lune.
 - **Des choix qui comptent** : épargner ou chasser l'Ours Brigand, poursuivre les espions de Pilaf, pardonner à Oolong ou le livrer au village, recruter Yamcha ou non, promettre d'épouser Chichi… et sauver le château de Gyumao en affrontant l'Esprit du Volcan, ou tout pulvériser d'un Kamehameha.
 - **Affinités** : tes réponses rapprochent (ou fâchent) tes compagnons. Les soirées au feu de camp permettent de mieux les connaître.
 - **Quêtes secondaires** suivies dans le Journal (menu) : la tortue perdue, la grand-mère malade, le marchand dévalisé, la boussole du nomade, le château en flammes.
 - **Conséquences** : l'évasion des cachots de Pilaf dépend de qui t'accompagne (Oolong, Yamcha, le plan des espions… ou un Kamehameha bien bruyant).
 - **Finale** : Pilaf invoque Shenron, et il faut faire un vœu avant lui. Les vœux disponibles dépendent de ton aventure (revoir Grand-père Gohan, rebâtir le château de Gyumao, le vœu d'un compagnon…).
 - **Épilogue et 3 fins** : chaque personnage connaît un destin différent selon tes choix, et ton karma décide de la fin (Le Cœur Pur, Le Petit Héros ou Le Garnement).
+
+### Chapitre 7 : la pleine lune
+
+Après le vœu, Pilaf enferme l'équipe dans une cage. La nuit tombe, les nuages s'écartent... et Goku regarde la pleine lune. Il se transforme en **singe géant** ! Sans Goku, ses amis doivent l'arrêter : frapper le singe ne sert à rien, il faut viser **sa queue**. On choisit ensuite qui la coupe (Yamcha, Oolong, Krilin ou Bulma), et l'épilogue s'en souvient.
+
+### Atelier de techniques
+
+Menu → Techniques → « + Créer une technique » : chaque héros peut inventer jusqu'à 4 techniques personnelles.
+- **Forme** : vague (comme le Kamehameha), boule, disque tranchant, rafale, pluie de météores, poing chargé ou aura de soin.
+- **Cible** : un ennemi ou tous les ennemis (un allié ou toute l'équipe pour les soins).
+- **Couleurs** : couleur principale et couleur de l'éclat (11 choix chacune), plus la **taille** de l'effet.
+- **Effet bonus** : paralysie, perce-garde, vol de vie, critique (ou réveil des K.O. pour les soins).
+- **Coût en Ki** : de 2 à 30. Plus la technique coûte cher, plus elle est puissante ; un effet bonus prend une partie du coût.
+- **Nom** : à taper au clavier ou avec une grille de lettres (tactile), ou tiré au hasard.
+
+Un aperçu animé montre la technique sur des mannequins d'entraînement, avec les dégâts estimés. Les techniques sont sauvegardées et utilisables en combat.
 
 ### Entraînement, équipement et style
 
@@ -60,7 +76,7 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 
 ### Et aussi
 
-- **8 boss** : l'Ours Brigand, Krilin (duel amical), le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan et la Pilaf Machine.
+- **9 boss** : l'Ours Brigand, Krilin (duel amical), le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan, la Pilaf Machine et Goku en singe géant.
 - **13 zones**, dont le campement, le Mont Frypan, le cœur du volcan et les cachots du château.
 - Boutiques (objets et équipements), auberge, coffres, Dragon Radar (menu → Boules), objets clés, sauvegarde.
 
@@ -75,6 +91,7 @@ js/monsters.js    monstres et boss (grilles + palettes)
 js/gfx.js         tuiles procédurales, arbres, bâtiments, objets
 js/data.js        héros, techniques, objets, ennemis, quêtes
 js/gear.js        équipements visibles et personnalisation de Goku
+js/techs.js       techniques personnalisées (atelier, aperçu, combat)
 js/engine.js      entrées, tâches asynchrones, état de la partie, sauvegarde
 js/ui.js          fenêtres, dialogues et portraits, menu, journal, boutique
 js/field.js       exploration : cartes, collisions, PNJ, ennemis visibles
