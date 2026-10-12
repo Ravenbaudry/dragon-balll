@@ -138,6 +138,13 @@ const SND = (() => {
         { w: 'drum', v: 0.4, d: 2, n: 'k h s h k k s h '.repeat(8) },
       ]
     },
+    tournoi: {
+      bpm: 144, ch: [
+        { w: 'p25', v: 0.13, d: 2, n: 'C5 E5 G5:4 E5 G5 C6:4 B5 A5 G5 A5 G5:4 E5:4 F5 A5 C6:4 A5 C6 F6:4 E6 D6 C6 D6 E6:8 D6 C6 B5 C6 D6:4 G5:4 E6 D6 C6 D6 E6:4 C6:4 A5 B5 C6 D6 E6:4 D6 B5 C6:8 G5:4 -:4' },
+        { w: 'tri', v: 0.3, d: 2, n: 'C3 C4 G3 C4 C3 C4 G3 C4 G2 G3 D3 G3 G2 G3 D3 G3 F2 F3 C3 F3 F2 F3 C3 F3 C3 C4 G3 C4 C3 C4 G3 C4 G2 G3 D3 G3 G2 G3 D3 G3 A2 A3 E3 A3 A2 A3 E3 A3 F2 F3 C3 F3 G2 G3 D3 G3 C3 C4 G3 C4 C3 G2 C3 -' },
+        { w: 'drum', v: 0.4, d: 2, n: 'k h s h k k s h '.repeat(8) },
+      ]
+    },
     gameover: {
       bpm: 80, loop: false, ch: [
         { w: 'p25', v: 0.14, d: 4, n: 'A4 G4 F4 E4:12 -:8' },

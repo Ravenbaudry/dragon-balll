@@ -10,6 +10,7 @@ const SUITES = {
   features: () => require('./features.test'),
   'story-good': () => require('./story.test').variant('good'),
   'story-bad': () => require('./story.test').variant('bad'),
+  tournoi: () => require('./tournoi.test'),
 };
 
 (async () => {

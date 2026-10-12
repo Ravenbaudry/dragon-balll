@@ -49,6 +49,8 @@ const UI = (() => {
     'Grand-mère': 'elder', 'Bandit': 'bandit', 'Mère': 'villF1',
     'Ours Brigand': 'mon:ours', 'Tortue': 'mon:umigame', 'Gyumao': 'mon:gyumao', 'Esprit du Volcan': 'mon:volcan', 'Puar': 'mon:puar',
     'Oolong Monstre': 'mon:taureau', 'Goku (singe géant)': 'mon:oozaru',
+    'Présentateur': 'annonceur', 'Jackie Chun': 'jackie', 'Nam': 'nam', 'Bactérian': 'bacterian', 'Ranfan': 'ranfan', 'Moine': 'moine',
+    'Passeur': 'villM2', 'Spectateur': 'villM1', 'Spectatrice': 'villF1', 'Giran': 'mon:giran',
   };
   function portraitFor(name) {
     if (!name) return null;

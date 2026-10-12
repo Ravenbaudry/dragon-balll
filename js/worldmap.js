@@ -9,8 +9,9 @@ const WorldMap = (() => {
     { id: 'desert', name: 'Désert de Diablo', x: 158, y: 66, land: ['desert', 22, 9, 'down'], desc: 'Le territoire de Yamcha et l\'oasis du nomade.' },
     { id: 'frypan', name: 'Mont Frypan', x: 220, y: 70, land: ['frypan', 3, 17, 'down'], desc: 'Le royaume du roi Gyumao, au pied du volcan.' },
     { id: 'chateau', name: 'Château de Pilaf', x: 150, y: 28, land: ['chateau', 6, 10, 'down'], desc: 'Le repaire de l\'empereur Pilaf. Méfiance !' },
+    { id: 'papaye', name: 'Île Papaye', x: 200, y: 179, land: ['papaye', 20, 20, 'up'], desc: 'L\'île du Championnat du monde des arts martiaux.' },
   ];
-  const ROADS = [['paozu', 'foret'], ['foret', 'plage'], ['plage', 'route'], ['route', 'village'], ['village', 'desert'], ['desert', 'chateau'], ['desert', 'frypan']];
+  const ROADS = [['paozu', 'foret'], ['foret', 'plage'], ['plage', 'route'], ['route', 'village'], ['village', 'desert'], ['desert', 'chateau'], ['desert', 'frypan'], ['plage', 'papaye']];
   const spot = id => SPOTS.find(s => s.id === id);
   const visited = s => !!Game.flags['vu_' + s.id];
 
@@ -19,9 +20,9 @@ const WorldMap = (() => {
   function build() {
     const c = GFX.mk(SW, SH), x = c.getContext('2d');
     const LAND = [[130, 98, 112, 60], [58, 110, 52, 42], [150, 42, 70, 34], [216, 70, 34, 40], [92, 154, 40, 12]];
-    const ISLE = [121, 178, 12, 6];
+    const ISLES = [[121, 178, 12, 6], [200, 174, 14, 8]];
     const inE = (px, py, [cx, cy, rx, ry], n) => ((px - cx) / (rx + n)) ** 2 + ((py - cy) / (ry + n)) ** 2 <= 1;
-    const land = (px, py) => { const n = (GFX.hash(px >> 2, py >> 2, 9) % 7) - 3; return LAND.some(e => inE(px, py, e, n)) || inE(px, py, ISLE, 0); };
+    const land = (px, py) => { const n = (GFX.hash(px >> 2, py >> 2, 9) % 7) - 3; return LAND.some(e => inE(px, py, e, n)) || ISLES.some(e => inE(px, py, e, 0)); };
     const grid = [];
     for (let j = 0; j < SH; j++) { grid.push([]); for (let i = 0; i < SW; i++) grid[j].push(land(i, j)); }
     const near = (i, j, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const yy = j + dy, xx = i + dx; if (yy >= 0 && yy < SH && xx >= 0 && xx < SW && !grid[yy][xx]) return true; } return false; };
@@ -64,6 +65,9 @@ const WorldMap = (() => {
     // Kame House sur son île
     x.fillStyle = K; x.fillRect(122, 170, 9, 8); x.fillStyle = '#f8a8c0'; x.fillRect(123, 173, 7, 4); x.fillStyle = '#d83030'; x.fillRect(122, 170, 9, 3);
     x.fillStyle = '#3a9040'; x.fillRect(132, 173, 2, 3);
+    // île Papaye : l'arène et la pagode du tournoi
+    x.fillStyle = K; x.fillRect(186, 167, 11, 8); x.fillStyle = '#d0ccbc'; x.fillRect(187, 168, 9, 6); x.fillStyle = '#8a8676'; x.fillRect(187, 173, 9, 1);
+    x.fillStyle = K; x.fillRect(204, 164, 7, 9); x.fillStyle = '#d84030'; x.fillRect(205, 167, 5, 5); x.fillStyle = '#3c8a54'; x.fillRect(203, 164, 9, 3);
     // routes en pointillés
     for (const [a, b] of ROADS) {
       const A = spot(a), B = spot(b), n = Math.hypot(B.x - A.x, B.y - A.y) / 4;

@@ -95,5 +95,7 @@ window.__bot = { skill: 1, on: false };
     if (S.phase === 'aim' && Math.abs(S.cx - S.zc) <= (sk >= 1 ? S.speed / 2 + 0.3 : 10)) press('a');
   } else if (G.id === 'meditation') {
     if (S.phase === 'input' && S.pt % 14 === 7) { const want = S.seq[S.input]; press(['up', 'right', 'down', 'left'][Math.random() < sk ? want : (want + 1) % 4]); }
+  } else if (G.id === 'relever') {
+    if (t % 4 === 0 && Math.random() < sk) press('a');
   }
 })();

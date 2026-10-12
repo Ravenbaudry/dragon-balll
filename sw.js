@@ -1,6 +1,6 @@
 // Service worker : le jeu reste jouable hors connexion une fois installé.
 // Stratégie « réseau d'abord » : en ligne on reçoit toujours la dernière version, hors ligne on joue depuis le cache.
-const CACHE = 'dbq-v1';
+const CACHE = 'dbq-v2';
 const FILES = [
   './',
   'index.html',
@@ -22,7 +22,7 @@ const FILES = [
   'js/battle.js',
   'js/minigames.js',
   'js/worldmap.js',
-  'js/maps.js',
+  'js/maps.js', 'js/tournoi.js',
   'js/main.js'
 ];
 self.addEventListener('install', e => {

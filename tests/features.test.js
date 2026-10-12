@@ -4,7 +4,7 @@ const path = require('path'), fs = require('fs'), os = require('os');
 const { execFileSync } = require('child_process');
 const { openGame } = require('./helpers');
 
-const ALL_SPOTS = ['paozu', 'foret', 'plage', 'route', 'village', 'desert', 'frypan', 'chateau'];
+const ALL_SPOTS = ['paozu', 'foret', 'plage', 'route', 'village', 'desert', 'frypan', 'chateau', 'papaye'];
 const visited = ALL_SPOTS.map(v => '"vu_' + v + '":true').join(',');
 
 module.exports = {
@@ -115,7 +115,7 @@ module.exports = {
       await G.key('Escape'); await G.key('ArrowDown', 5); await G.key('Enter'); await G.wait(200);
       r.step('Kinto\'un indisponible avant de recevoir le nuage', await G.ev('Game.mode === "field" && !WorldMap.active()'));
       await G.key('Escape');
-      await G.ev(`__test("plage", 12, 8, {lv:12, party:["goku","bulma","krillin"], flags:{roshi:true, kintounUsed:true, ${visited}}})`);
+      await G.ev(`__test("plage", 12, 8, {lv:12, party:["goku","bulma","krillin"], flags:{roshi:true, kintounUsed:true, papayeIntro:true, ${visited}}})`);
       const bad = [];
       for (let i = 0; i < ALL_SPOTS.length; i++) {
         await G.ev('Field.run(() => WorldMap.travel()); 1'); await G.wait(300);

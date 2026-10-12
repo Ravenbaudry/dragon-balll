@@ -79,6 +79,7 @@ const Main = (() => {
     Tasks.reset(); Battle.reset();
     Field.locks = 0; Field.battle = false; Field.camLock = false;
     Shenron.active = false; Moon.active = false; epi = null;
+    Tournoi.reset();
   }
   async function newGame() {
     resetWorld();
@@ -596,8 +597,8 @@ const Main = (() => {
     return out;
   }
   let epi = null;
-  function epilogue(slides) {
-    return new Promise(res => { epi = { slides, i: 0, t: 0, res }; Game.mode = 'epilogue'; SND.playMusic(Game.flags.wish === 'gohan' ? 'sad' : 'camp'); UI.fade.v = 0; });
+  function epilogue(slides, o = {}) {
+    return new Promise(res => { epi = { slides, i: 0, t: 0, res, prefix: o.prefix }; Game.mode = 'epilogue'; SND.playMusic(o.music || (Game.flags.wish === 'gohan' ? 'sad' : 'camp')); UI.fade.v = 0; });
   }
   function updateEpilogue() {
     epi.t++;
@@ -613,7 +614,7 @@ const Main = (() => {
     if (epi.done) return;
     const s = epi.slides[epi.i];
     ctx.globalAlpha = Math.min(1, epi.t / 24);
-    FONT.drawCentered(ctx, epi.i === epi.slides.length - 1 ? s.title : 'Épilogue — ' + s.title, 128, 18, UI.YEL);
+    FONT.drawCentered(ctx, epi.i === epi.slides.length - 1 ? s.title : (epi.prefix || 'Épilogue — ') + s.title, 128, 18, UI.YEL);
     ctx.fillStyle = '#c0a040'; ctx.fillRect(48, 32, 160, 1);
     const figs = [];
     for (const c of s.chars || []) figs.push({ img: GFX.char(charKey(c)).down[0], w: 48, h: 64 });
@@ -645,7 +646,7 @@ const Main = (() => {
         ['Personnages', 'yel'], 'Son Goku', 'Bulma', 'Krilin', 'Tortue Géniale', 'Yamcha et Puar', 'Oolong', 'Chichi et le roi Gyumao', 'Grand-père Gohan', 'L\'empereur Pilaf, Shu et Mai', 'Shenron', '', '',
         ['Programmation, graphismes, musique', 'yel'], 'Pixel art, code et chiptune', 'créés avec Claude', '', '',
         ['Dragon Ball', 'yel'], '© Akira Toriyama / Bird Studio', 'Shueisha, Toei Animation', 'Œuvre de fan sans but commercial.', '', '',
-        ['Merci d\'avoir joué !', 'yel'], 'As-tu découvert toutes les fins ?', '', '', 'Appuie sur Z pour revenir au titre',
+        ['Merci d\'avoir joué !', 'yel'], 'As-tu découvert toutes les fins ?', '', '', Game.flags.ch8 ? 'Appuie sur Z pour revenir au titre' : 'Appuie sur Z pour continuer...',
       ],
     };
   }
@@ -669,7 +670,11 @@ const Main = (() => {
   }
   function updateCredits() {
     if (credits.end === undefined || credits.end > SH / 2 + 20) credits.y -= Input.down('a') ? 2 : 0.4;
-    else if (Input.pressed('a')) { Game.mode = 'title'; titleSel = 0; credits = null; SND.playMusic('title'); }
+    else if (Input.pressed('a')) {
+      credits = null;
+      if (!Game.flags.ch8) { Tournoi.begin(); return; } // chapitre 8 : « Un an plus tard »
+      Game.mode = 'title'; titleSel = 0; SND.playMusic('title');
+    }
   }
 
   // ---------------- Boucle ----------------
@@ -700,6 +705,7 @@ const Main = (() => {
       case 'field':
         Field.draw();
         if (Shenron.active) drawShenron(Field.cx, Field.cy);
+        Tournoi.draw();
         if (Moon.active) drawMoon();
         if (Field.battle) Battle.drawUI();
         break;
@@ -730,7 +736,7 @@ const Main = (() => {
     GFX.init();
     requestAnimationFrame(loop);
   }
-  return { boot, gameOver, shenronFinale, Shenron, Moon, newGame, continueGame };
+  return { boot, gameOver, shenronFinale, Shenron, Moon, newGame, continueGame, epilogue };
 })();
 const Shenron = Main.Shenron;
 Main.boot();

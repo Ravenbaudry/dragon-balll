@@ -364,7 +364,7 @@ const MiniGames = (() => {
     G.t++;
     if (G.phase === 'intro') {
       if (G.t > 20 && Input.pressed('a')) { G.phase = 'play'; G.t = 0; if (G.def.music) SND.playMusic(G.def.music); SND.sfx('confirm'); }
-      else if (G.t > 20 && Input.pressed('b')) end(null);
+      else if (G.t > 20 && Input.pressed('b') && !G.def.noCancel) end(null);
       return;
     }
     if (G.phase === 'play') {
@@ -395,9 +395,11 @@ const MiniGames = (() => {
       UI.win(20, 34, 216, 150);
       big(G.def.name, 128, 42, 1, '#f8e070');
       FONT.wrap(G.def.help, 196).forEach((l, i) => FONT.draw(ctx, l, 30, 66 + i * 12, '#ffffff'));
-      FONT.draw(ctx, 'Élève : ' + G.m.name, 30, 132, '#80d8f8');
-      FONT.draw(ctx, 'Récompense : ' + G.def.stat, 30, 145, '#80d8f8');
-      if (Math.floor(G.t / 20) % 2) FONT.drawCentered(ctx, 'Z / A : commencer   X : retour', 128, 166, '#f8e070');
+      FONT.draw(ctx, (G.def.who || 'Élève') + ' : ' + G.m.name, 30, 132, '#80d8f8');
+      if (G.def.stat) FONT.draw(ctx, 'Récompense : ' + G.def.stat, 30, 145, '#80d8f8');
+      if (Math.floor(G.t / 20) % 2) FONT.drawCentered(ctx, G.def.noCancel ? 'Z / A : commencer' : 'Z / A : commencer   X : retour', 128, 166, '#f8e070');
+    } else if (G.phase === 'result' && G.def.drawResult) {
+      G.def.drawResult.call(G.def, G);
     } else if (G.phase === 'result') {
       ctx.fillStyle = 'rgba(0,0,20,' + Math.min(0.6, G.rt / 40) + ')'; ctx.fillRect(0, 0, SW, SH);
       UI.win(48, 50, 160, 116);

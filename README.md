@@ -50,7 +50,7 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 
 ### Une histoire avec des choix
 
-- **Un prologue et 7 chapitres** : maison de Goku, forêt de Paozou, Kame House, village d'Aru, désert de Diablo, Mont Frypan, château de Pilaf et la nuit de pleine lune.
+- **Un prologue et 8 chapitres** : maison de Goku, forêt de Paozou, Kame House, village d'Aru, désert de Diablo, Mont Frypan, château de Pilaf, la nuit de pleine lune et, après les crédits, le Championnat du monde.
 - **Des choix qui comptent** : épargner ou chasser l'Ours Brigand, poursuivre les espions de Pilaf, pardonner à Oolong ou le livrer au village, recruter Yamcha ou non, promettre d'épouser Chichi… et sauver le château de Gyumao en affrontant l'Esprit du Volcan, ou tout pulvériser d'un Kamehameha.
 - **Affinités** : tes réponses rapprochent (ou fâchent) tes compagnons. Les soirées au feu de camp permettent de mieux les connaître.
 - **Quêtes secondaires** suivies dans le Journal (menu) : la tortue perdue, la grand-mère malade, le marchand dévalisé, la boussole du nomade, le château en flammes.
@@ -61,6 +61,15 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 ### Chapitre 7 : la pleine lune
 
 Après le vœu, Pilaf enferme l'équipe dans une cage. La nuit tombe, les nuages s'écartent... et Goku regarde la pleine lune. Il se transforme en **singe géant** ! Sans Goku, ses amis doivent l'arrêter : frapper le singe ne sert à rien, il faut viser **sa queue**. On choisit ensuite qui la coupe (Yamcha, Oolong, Krilin ou Bulma), et l'épilogue s'en souvient.
+
+### Chapitre 8 : le Championnat du monde
+
+Après les crédits, **un an plus tard** : Goku et Krilin ont fini leur entraînement chez Tortue Géniale (deux niveaux de plus), et la queue de Goku a repoussé... Le passeur de la Kame House emmène l'équipe sur l'**île Papaye** (aussi accessible ensuite en Kinto'un) pour le 21e Championnat du monde des arts martiaux.
+- **Un vrai tableau de tournoi** à huit combattants : Krilin, Bactérian, Jackie Chun, Yamcha, Goku, Giran, Nam et Ranfan.
+- **Des combats en un contre un** : Krilin contre Bactérian (il n'a pas de nez !), Goku contre Giran le monstre ailé, contre Nam, puis la finale contre le mystérieux **Jackie Chun**. Les autres combats sont mis en scène.
+- **Des choix** : promettre ou non d'aider le village de Nam, garder ou donner la bourse du champion, et deviner (ou pas) qui se cache derrière les lunettes noires de Jackie Chun.
+- **La finale** : la nuit tombe, la pleine lune se lève, Goku redevient singe géant... et Jackie Chun détruit la lune d'un Kamehameha. Le combat reprend, puis c'est le double K.O. : dans le mini-jeu *« Debout, Goku ! »*, il faut marteler le bouton pour que Goku se relève avant la fin du compte.
+- **Deux issues** : champion (Ceinture du Champion) ou finaliste (Bandeau d'Argent), avec leur épilogue.
 
 ### Atelier de techniques
 
@@ -89,8 +98,8 @@ Un aperçu animé montre la technique sur des mannequins d'entraînement, avec l
 
 ### Et aussi
 
-- **9 boss** : l'Ours Brigand, Krilin (duel amical), le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan, la Pilaf Machine et Goku en singe géant.
-- **13 zones**, dont le campement, le Mont Frypan, le cœur du volcan et les cachots du château.
+- **13 boss** : l'Ours Brigand, Krilin (duel amical), le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan, la Pilaf Machine, Goku en singe géant, puis Bactérian, Giran, Nam et Jackie Chun au tournoi.
+- **14 zones**, dont le campement, le Mont Frypan, le cœur du volcan, les cachots du château et l'île Papaye.
 - Boutiques (objets et équipements), auberge, coffres, Dragon Radar (menu → Boules), objets clés, sauvegarde.
 
 ## Structure du code
@@ -112,6 +121,7 @@ js/battle.js      système de combat ATB
 js/minigames.js   mini-jeux d'entraînement de Tortue Géniale
 js/worldmap.js    carte du monde et voyage en Kinto'un
 js/maps.js        cartes, événements, scénario et choix
+js/tournoi.js     chapitre 8 : île Papaye, tournoi, destruction de la lune
 js/main.js        boucle principale, écran titre, finale, épilogue et crédits
 manifest.webmanifest, sw.js, icons/   application installable et mode hors connexion
 tools/standalone.js  génère une version en un seul fichier HTML
@@ -132,5 +142,6 @@ node tests/run.js features story-good story-bad
 - **static** : syntaxe, lint, cartes (murs, sorties, atterrissages du Kinto'un), références aux ennemis, objets et sprites, musiques, fichiers du mode hors connexion.
 - **features** : menus, équipement, style, mini-jeux, voyage en Kinto'un, atelier de techniques, sauvegarde, mode hors connexion.
 - **story-good / story-bad** : toute l'aventure, du prologue aux crédits, avec les « bons » puis les « mauvais » choix.
+- **tournoi** : le chapitre 8 en entier, une fois champion (promesse tenue, Jackie Chun démasqué) et une fois finaliste.
 
 Sur GitHub, ces tests tournent tout seuls à chaque envoi (onglet **Actions**). En cas d'échec, les captures d'écran sont jointes au résultat.

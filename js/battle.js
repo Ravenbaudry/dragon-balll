@@ -49,6 +49,10 @@ const Battle = (() => {
         e.tx = sx + cx; e.ty = sy + cy;
         B.enemies.push(e);
       });
+      if (opts.hp) { // points de vie imposés au départ (combat qui reprend)
+        if (opts.hp.party) for (const c of B.party) c.hp = Math.max(1, Math.round(c.maxhp * opts.hp.party));
+        if (opts.hp.enemy) for (const e of B.enemies) e.hp = Math.max(1, Math.round(e.maxhp * opts.hp.enemy));
+      }
       // mise en place
       await wait(10);
       const moves = B.party.map((c, i) => {
@@ -89,6 +93,7 @@ const Battle = (() => {
   function damage(t, n, opts = {}) {
     if (t.dead || (t.side === 'p' && t.hp <= 0)) return;
     t.hp = Math.max(t.side === 'e' && t.d.unkillable ? 1 : 0, t.hp - n); // le singe géant ne tombe pas
+    if (t.side === 'e' && t.d.yieldAt && t.hp <= t.maxhp * t.d.yieldAt) { t.hp = Math.max(1, t.hp); t.yielded = true; } // combat interrompu
     pop(t, n, opts.col || '#fff');
     t.flash = 10;
     if (opts.big) Game.shake = 8;
@@ -658,14 +663,15 @@ const Battle = (() => {
   }
   function checkEnd() {
     if (!B || B.phase !== 'main') return;
-    if (!livingEnemies().length) { B.phase = 'victory'; victory(); }
+    if (!livingEnemies().length || B.enemies.some(e => e.yielded)) { B.phase = 'victory'; victory(); }
     else if (!livingParty().length) { B.phase = 'defeat'; defeat(); }
   }
   async function victory() {
     B.busy = true; B.menu = null; B.ready = []; B.actions = [];
     await wait(30);
     SND.playMusic('victory');
-    message('Victoire !', 999);
+    const yielded = B.enemies.find(e => e.yielded);
+    message(yielded ? yielded.d.yieldMsg || 'Victoire !' : 'Victoire !', 999);
     for (const c of livingParty()) { c.pose = 'win'; }
     const jumps = livingParty().map(async (c, i) => { await wait(i * 6); await arc(c, 10, 18); await arc(c, 6, 14); });
     let xp = 0, zeni = 0; const drops = [];
@@ -677,10 +683,12 @@ const Battle = (() => {
     Game.zeni += zeni;
     for (const d of drops) Game.addItem(d);
     await Promise.all(jumps);
-    B.result = { xp, zeni, drops };
-    await Tasks.until(() => Input.pressed('a') || Input.pressed('b'));
-    SND.sfx('confirm');
-    B.result = null;
+    if (xp || zeni || drops.length) {
+      B.result = { xp, zeni, drops };
+      await Tasks.until(() => Input.pressed('a') || Input.pressed('b'));
+      SND.sfx('confirm');
+      B.result = null;
+    } else await wait(50);
     for (const c of B.party) {
       const m = c.m;
       if (m.hp <= 0) m.hp = 1;
