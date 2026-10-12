@@ -131,6 +131,13 @@ const SND = (() => {
         { w: 'p12', v: 0.04, d: 2, n: 'A3 E4 A4 C5 E5 C5 A4 E4 A3 E4 A4 C5 E5 C5 A4 E4 F3 C4 F4 A4 C5 A4 F4 C4 E3 B3 E4 G#4 B4 G#4 E4 B3 A3 E4 A4 C5 E5 C5 A4 E4 C4 E4 G4 C5 E5 C5 G4 E4 D4 F4 A4 D5 E4 G#4 B4 E5 A3 E4 A4 C5 A4:8' },
       ]
     },
+    training: {
+      bpm: 136, ch: [
+        { w: 'p25', v: 0.13, d: 2, n: 'G5 B5 D6:2 B5:2 G5:2 A5:2 B5:4 A5 G5 E5:4 D5:4 E5 G5 G5 B5 D6:2 E6:2 D6:2 B5:2 G5:4 A5:4 B5 A5 G5:4 -:4 C6 B5 A5:4 G5 A5 B5:4 A5 G5 E5:4 G5:4 D5:4 G5 A5 B5:2 D6:2 E6:2 D6:2 B5:4 A5 B5 G5:8 -:4' },
+        { w: 'tri', v: 0.3, d: 2, n: 'G2 G3 D3 G3 G2 G3 D3 G3 E2 E3 B2 E3 E2 E3 B2 E3 G2 G3 D3 G3 G2 G3 D3 G3 D2 D3 A2 D3 D2 D3 A2 D3 C3 C4 G3 C4 C3 C4 G3 C4 E2 E3 B2 E3 D2 D3 A2 D3 G2 G3 D3 G3 C3 C4 G3 C4 D2 D3 A2 D3 G2 G3 D3 G2' },
+        { w: 'drum', v: 0.4, d: 2, n: 'k h s h k k s h '.repeat(8) },
+      ]
+    },
     gameover: {
       bpm: 80, loop: false, ch: [
         { w: 'p25', v: 0.14, d: 4, n: 'A4 G4 F4 E4:12 -:8' },
@@ -277,5 +284,8 @@ const SND = (() => {
     jump: () => tone('p25', 300, 900, 0.12, 0.1),
   };
   function sfx(name) { if (!ctx || muted) return; const f = FX[name]; if (f) f(); }
-  return { init, playMusic, stopMusic, sfx, toggleMute, isMuted: () => muted, current: () => current && current.name };
+  // Note ou percussion isolée (mini-jeux de rythme)
+  function note(m, dur = 0.2, w = 'p25', v = 0.14) { if (!ctx || muted) return; playNote({ w, v }, m, ctx.currentTime + 0.005, dur, sfxBus); }
+  function beat(kind, v = 0.4) { if (!ctx || muted) return; drum(kind, ctx.currentTime + 0.005, v, sfxBus); }
+  return { init, playMusic, stopMusic, sfx, note, beat, toggleMute, isMuted: () => muted, current: () => current && current.name };
 })();

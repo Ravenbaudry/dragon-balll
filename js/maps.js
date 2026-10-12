@@ -5,9 +5,9 @@ const L = () => Field.leader();
 const has = id => !!Game.member(id);
 
 async function getItem(id, n = 1) {
-  Game.addItem(id, n);
+  Game.give(id, n);
   SND.sfx('item');
-  await say(null, 'Obtenu : ' + ITEMS[id].name + (n > 1 ? ' x' + n : '') + ' !');
+  await say(null, 'Obtenu : ' + itemDef(id).name + (n > 1 ? ' x' + n : '') + ' !' + (GEAR[id] ? ' (Menu → Équipement)' : ''));
 }
 async function getBall(n) {
   Game.giveBall(n);
@@ -124,7 +124,7 @@ MAPS.maison = {
       Game.flags.intro = true;
       Game.setQuest('main', 'paozu', true);
       await joinParty('bulma', b);
-      await say(null, "Approche-toi de la boule et appuie sur Z (ou Entrée / bouton A) pour la prendre. X ou Échap ouvre le menu.");
+      await say(null, "Approche-toi de la boule et appuie sur Z (ou Entrée / bouton A) pour la prendre. X ou Échap ouvre le menu : Équipement, Style pour personnaliser Goku, etc.");
     });
   },
 };
@@ -416,8 +416,76 @@ MAPS.plage = {
   },
 };
 async function roshiAfter() {
-  await say('Tortue Géniale', "Ho ho ho ! Bon voyage, les jeunes ! Et toi, jolie Bulma, reviens me voir quand tu veux, hé hé...");
+  const r = await ask('Tortue Géniale', 'Ho ho ho ! Alors, les jeunes, on vient s\'entraîner ?', ['S\'entraîner', 'Discuter', 'Au revoir'], { cancel: 2 });
+  if (r === 0) return trainingMenu();
+  if (r !== 1) return;
+  await say('Tortue Géniale', "Bon voyage, les jeunes ! Et toi, jolie Bulma, reviens me voir quand tu veux, hé hé...");
   await say('Bulma', '...Vieux pervers.');
+}
+
+// ---------------- Entraînement de la Tortue (mini-jeux) ----------------
+const TRAINING = {
+  rythme: { bonus: { ki: 3 }, prize: 'bandeau_kame', words: "Tu as le rythme dans la peau ! Tiens, voici le Bandeau de la Tortue." },
+  lait: { bonus: { spd: 1 }, prize: 'carapace', words: "Tout le lait est livré ! Tu mérites ta propre carapace d'entraînement. Elle pèse vingt kilos, hé hé !" },
+  briques: { bonus: { atk: 1 }, prize: 'gants_tortue', words: 'Toutes les briques, du premier coup ! Prends ces gants, ils protégeront tes poings.' },
+  meditation: { bonus: { mag: 1 }, prize: 'kimono_kame', words: "Un esprit calme et clair... Tu es digne de porter le kimono de l'école de la Tortue !" },
+};
+const bestRank = (game, id) => (Game.train[id] || {})[game] || 0; // 0 = jamais, 1 à 4 = rangs C à S
+const rankTag = r => (r ? ' [' + MiniGames.RANKS[r - 1] + ']' : '');
+async function trainingMenu() {
+  if (!Game.flags.trainIntro) {
+    Game.flags.trainIntro = true;
+    await say('Tortue Géniale', "L'entraînement de la Tortue développe le corps ET l'esprit ! Chaque exercice renforce une qualité différente.");
+    await say('Tortue Géniale', 'Plus ton rang est bon, plus tu progresses. Et pour un rang S... je garde quelques surprises, hé hé.');
+  }
+  const ids = Object.keys(TRAINING);
+  for (;;) {
+    const best = g => Math.max(0, ...Game.allMembers().map(p => bestRank(g, p.id)));
+    const c = await ask('Tortue Géniale', 'Quel exercice ?', ids.map(g => MiniGames.GAMES[g].name + rankTag(best(g))).concat(['Arrêter']), { cancel: ids.length });
+    if (c >= ids.length) { await say('Tortue Géniale', "Bien travaillé ! Le repos fait aussi partie de l'entraînement."); return; }
+    const game = ids[c], all = Game.allMembers();
+    let m = all[0];
+    if (all.length > 1) {
+      const w = await ask('Tortue Géniale', "Qui s'entraîne ?", all.map(p => p.name + rankTag(bestRank(game, p.id))).concat(['Annuler']), { cancel: all.length });
+      if (w >= all.length) continue;
+      m = all[w];
+    }
+    await UI.fadeTo(1, 16);
+    const run = MiniGames.run(game, m);
+    UI.fade.v = 0;
+    const res = await run;
+    if (res) await trainingReward(game, m, res);
+  }
+}
+async function trainingReward(game, m, res) {
+  const T = TRAINING[game], rank = res.rank + 1, old = bestRank(game, m.id);
+  await say('Tortue Géniale', [
+    "Hmm... C'est un début. L'entraînement, c'est surtout de la persévérance !",
+    'Pas mal, pas mal ! Mais tu peux faire mieux.',
+    'Excellent ! Encore un petit effort et tu seras un vrai maître.',
+    "Ho ho ho ! PARFAIT ! Même moi, à ton âge, je n'étais pas aussi doué !",
+  ][res.rank]);
+  const zeni = 10 + res.rank * 15;
+  Game.zeni += zeni; SND.sfx('coin');
+  if (rank > old) {
+    Game.train[m.id] = Object.assign({}, Game.train[m.id], { [game]: rank });
+    const b = {};
+    for (const k in T.bonus) b[k] = T.bonus[k] * (rank - old);
+    applyBonus(m, b);
+    SND.sfx('levelup');
+    await say(null, m.name + ' progresse ! (' + Object.keys(b).map(k => STAT_NAMES[k] + ' +' + b[k]).join(', ') + ')   +' + zeni + ' Zénis');
+  } else await say(null, 'Pour progresser encore, ' + m.name + ' doit battre son record (rang ' + MiniGames.RANKS[old - 1] + ').   +' + zeni + ' Zénis');
+  if (res.rank === 3 && !Game.flags['prize_' + game]) {
+    Game.flags['prize_' + game] = true;
+    await say('Tortue Géniale', T.words);
+    await getItem(T.prize);
+  }
+  if (!Game.flags.goldHair && Object.keys(TRAINING).every(g => Game.flags['prize_' + g])) {
+    Game.flags.goldHair = true;
+    await say('Tortue Géniale', "Rang S à tous les exercices... Incroyable ! Tes cheveux brillent comme de l'or ! ... Ah non, c'est le soleil. Mais ça t'irait bien !");
+    SND.sfx('levelup');
+    await say(null, 'Style secret débloqué : les cheveux dorés ! (Menu → Style)');
+  }
 }
 async function roshiTalk(e) {
   if (!Game.flags.turtle) {
@@ -501,6 +569,7 @@ async function roshiTalk(e) {
   e.gone = true;
   Field.addEntity({ kind: 'npc', id: 'roshi2', sprite: 'roshi', x: e.x, y: e.y, talk: roshiAfter });
   Field.addEntity({ kind: 'npc', id: 'umi_beach', x: 27 * 16 + 8, y: 13 * 16 + 14, mon: 'umigame', talk: () => say('Tortue', 'Merci encore de m\'avoir ramenée à la mer, Goku !') });
+  await say('Tortue Géniale', "Et revenez me voir quand vous voulez pour vous entraîner ! L'école de la Tortue est toujours ouverte.");
   await say('Bulma', "Le radar indique une autre boule au nord, de l'autre côté de la montagne. Il y a un village là-bas !");
   Game.setQuest('main', 'village');
   await say(null, 'Astuce : quand deux héros ont leur jauge pleine, ils peuvent lancer une technique double (en violet dans le menu Tech) !');
@@ -531,7 +600,7 @@ async function campScene(n) {
   Field.load('camp', 6, 7, 'up');
   Field.hideParty = true;
   const spots = [[6, 7, 'up'], [4, 5, 'right'], [8, 5, 'left'], [6, 3, 'down'], [4, 7, 'up'], [8, 7, 'up']];
-  Game.allMembers().forEach((m, i) => Field.addEntity({ kind: 'npc', id: 'camp_' + m.id, sprite: MEMBERS[m.id].sprite, tx: spots[i][0], ty: spots[i][1], dir: spots[i][2] }));
+  Game.allMembers().forEach((m, i) => Field.addEntity({ kind: 'npc', id: 'camp_' + m.id, sprite: lookKey(m), tx: spots[i][0], ty: spots[i][1], dir: spots[i][2] }));
   await UI.fadeTo(0, 40);
   if (n === 1) await camp1(); else await camp2();
   await UI.fadeTo(1, 40);
@@ -630,7 +699,7 @@ MAPS.route = {
     warp(30, 0, 2, 1, 'village', 17.5, 26, 'up'),
     savePt(33, 6),
     sign(6, 16, "Route de la Montagne. Au nord : le Village d'Aru. Attention aux bandits !"),
-    chest('route1', 3, 4, 'super_tonique'),
+    chest('route1', 3, 4, 'bandeau'),
     chest('route2', 33, 11, 'boisson_ki', 2),
     npc('merchant', 'villM1', 6, 19, merchantTalk),
     npc('chef', 'brigand', 6, 12, chefTalk, { cond: () => !Game.flags.chefBeaten, dir: 'right' }),
@@ -736,7 +805,7 @@ MAPS.village = {
     savePt(12, 11),
     npc('shopkeeper', 'villM2', 6, 10, async () => {
       await say('Marchand', 'Bienvenue à la boutique du village ! Toniques, boissons... tout pour l\'aventure !');
-      await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie']);
+      await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie', 'bandeau', 'baton_bambou', 'gants_cuir', 'plastron']);
     }),
     npc('innkeeper', 'villF2', 31, 10, async () => {
       const r = await ask('Aubergiste', "Bienvenue à l'auberge ! Une bonne nuit pour toute l'équipe : 15 Zénis. Ça vous dit ?", ['Dormir (15 Z)', 'Non merci'], { cancel: 1 });
@@ -940,7 +1009,7 @@ async function nomadTalk() {
     await say('Nomade', "Ah, et si vous voyez une boussole dorée près des rochers du sud-est... c'est la mienne. Je l'ai perdue pendant une tempête.");
     Game.setQuest('boussole', 'start');
   }
-  await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie']);
+  await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie', 'lunettes', 'sabre', 'gants_cuir', 'plastron']);
 }
 async function yamchaEvent() {
   const y = Field.ent('yamcha'), p = Field.ent('puar');
@@ -1130,6 +1199,8 @@ async function gyumaoReward() {
   await say('Gyumao', "Le feu est éteint ! Le feu est ÉTEINT ! Vous êtes des héros ! Voici la Boule de Cristal, et toute ma gratitude !");
   await getBall(6);
   await getItem('senzu', 2);
+  await say('Gyumao', 'Et prends aussi ce casque de ma famille. Il te portera chance, petit !');
+  await getItem('casque');
   if (Game.flags.metChichi) { await say('Chichi', 'Goku, tu es le plus fort ! Je savais que tu y arriverais !'); Game.addAff('chichi', 1, true); }
   Game.setQuest('main', 'chateau');
   await say('Bulma', "Plus que deux boules, et elles sont chez ce fameux Pilaf. Direction le château, au nord du désert !");
@@ -1248,7 +1319,7 @@ MAPS.chateau = {
     warp(15, 7, 2, 1, 'trone', 8.5, 12, 'up'),
     warp(15, 27, 2, 1, 'desert', 8.5, 1, 'down'),
     savePt(6, 9),
-    chest('chateau1', 2, 4, 'super_tonique', 2),
+    chest('chateau1', 2, 4, 'armure'),
     chest('chateau2', 29, 4, 'capsule_vie', 2),
     foe(8, 14, ['robot']),
     foe(24, 14, ['soldat', 'soldat']),

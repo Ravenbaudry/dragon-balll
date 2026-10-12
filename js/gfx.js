@@ -128,9 +128,19 @@ const GFX = (() => {
     put(g, body.map(r => r.join('')), BODY_Y);
     const over = def.over ? OVERLAYS[def.over] : null;
     if (over && over[dir]) put(g, expand(over[dir].slice(1), CW), over[dir][0]);
+    // équipement et style (voir gear.js) : avant la tête, sur la tête, puis dans le dos
+    const mods = def.mods || [];
+    const c = { dir, frame, attack, def, type, isHead: () => false };
+    for (const m of mods) if (m.phase === 'body') m.fn(g, c);
+    const before = mods.length ? g.map(r => r.slice()) : null;
     const head = HEADS[def.head];
     put(g, expand(head[dir], CW), 0);
     if (head.over && head.over[dir]) put(g, expand(head.over[dir].slice(1), CW), head.over[dir][0]);
+    if (before) {
+      c.isHead = (x, y) => g[y][x] !== before[y][x];
+      for (const m of mods) if (m.phase === 'head') m.fn(g, c);
+      for (const m of mods) if (m.phase === 'back') m.fn(g, c);
+    }
     if (def.short) {
       const cut = type === 'dress' ? 28 : 26;
       g.splice(cut, 2); g.unshift(blankRow(), blankRow());
@@ -143,6 +153,7 @@ const GFX = (() => {
     if (!pal.l) pal.l = pal.p; if (!pal.L) pal.L = pal.P;
     if (!pal.F) pal.F = pal.f; if (!pal.D) pal.D = pal.d; if (!pal.x) pal.x = pal.f;
     if (!pal.a) pal.a = pal.c;
+    if (def.palOver) Object.assign(pal, def.palOver);
     return pal;
   }
   function buildChar(name) {

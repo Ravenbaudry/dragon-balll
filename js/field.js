@@ -146,7 +146,8 @@ const Field = (() => {
     const x = L ? L.x : 0, y = L ? L.y : 0, dir = L ? L.dir : 'down';
     F.actors = Game.party.map((m, i) => {
       const old = F.actors.find(a => a.id === m.id);
-      return old || { id: m.id, sprite: MEMBERS[m.id].sprite, x, y, dir, frame: 0, anim: 0, moving: false, z: 0 };
+      if (old) { old.sprite = lookKey(m); return old; }
+      return { id: m.id, sprite: lookKey(m), x, y, dir, frame: 0, anim: 0, moving: false, z: 0 };
     });
   }
 

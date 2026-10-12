@@ -54,7 +54,8 @@ const UI = (() => {
     if (!name) return null;
     const key = SPEAKERS[name] || SPEAKERS[name.replace(/ \(.*\)$/, '')];
     if (!key) return null;
-    return key.startsWith('mon:') ? GFX.monPortrait(key.slice(4)) : GFX.portrait(key);
+    if (key.startsWith('mon:')) return GFX.monPortrait(key.slice(4));
+    return GFX.portrait(MEMBERS[key] ? charKey(key) : key); // les héros apparaissent avec leur équipement
   }
   function say(name, str, opts = {}) {
     return new Promise(res => {
@@ -147,9 +148,9 @@ const UI = (() => {
   // ---------------- Menu principal (terrain) ----------------
   let menu = null;
   function openMenu() { menu = { sel: 0, sub: null }; SND.sfx('confirm'); }
-  const MENU_ITEMS = ['Objets', 'Techniques', 'Équipe', 'Journal', 'Boules', 'Sauver', 'Son'];
+  const MENU_ITEMS = ['Objets', 'Techniques', 'Équipement', 'Équipe', 'Style', 'Journal', 'Boules', 'Sauver', 'Son'];
   function memberCard(m, x, y, highlight) {
-    const spr = GFX.char(MEMBERS[m.id].sprite);
+    const spr = GFX.char(lookKey(m));
     ctx.fillStyle = highlight ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0)'; ctx.fillRect(x, y, 158, 46);
     ctx.drawImage(m.hp > 0 ? spr.down[0] : spr.ko, x + 1, y + (m.hp > 0 ? 8 : 16));
     text(m.name, x + 28, y + 2, YEL);
@@ -164,19 +165,19 @@ const UI = (() => {
   function drawMenu() {
     win(4, 4, 170, 168);
     Game.party.forEach((m, i) => memberCard(m, 10, 10 + i * 52, menu.sub && menu.sub.pickMember && menu.sub.msel === i));
-    win(178, 4, 74, 102);
+    win(178, 4, 74, 128);
     MENU_ITEMS.forEach((s, i) => {
-      text(s, 194, 10 + i * 13, menu.sub ? '#a0a8c8' : '#fff');
-      if (!menu.sub && i === menu.sel) cursor(182, 10 + i * 13);
+      text(s, 192, 10 + i * 13, menu.sub ? '#a0a8c8' : '#fff');
+      if (!menu.sub && i === menu.sel) cursor(181, 10 + i * 13);
     });
-    win(178, 108, 74, 64);
-    text('Zénis', 184, 113, GRAY); FONT.drawRight(ctx, String(Game.zeni), 246, 125);
-    text(playTime(), 184, 141, '#c0c8e8');
-    FONT.drawRight(ctx, '★ ' + Game.balls.length + '/7', 246, 155, YEL);
+    win(178, 134, 74, 38);
+    text('Z', 184, 139, GRAY); FONT.drawRight(ctx, String(Game.zeni), 246, 139, YEL);
+    text(playTime(), 184, 153, '#c0c8e8');
+    FONT.drawRight(ctx, '★' + Game.balls.length + '/7', 246, 153, YEL);
     win(4, 176, 248, 44);
     const loc = Field.map ? Field.map.name : '';
     if (!menu.sub) {
-      const hint = ['Utiliser un objet.', 'Voir et utiliser les techniques.', 'Choisir les trois héros de l\'équipe active.', 'Quêtes en cours et liens avec tes amis.', 'Voir les Boules de Cristal (Dragon Radar).', 'Sauvegarder la partie.', 'Activer / couper le son (M).'][menu.sel];
+      const hint = ['Utiliser un objet.', 'Voir et utiliser les techniques.', 'Armes, tenues et couvre-chefs.', 'Choisir les trois héros de l\'équipe active.', 'Personnaliser l\'apparence de Goku.', 'Quêtes en cours et liens avec tes amis.', 'Voir les Boules de Cristal (Dragon Radar).', 'Sauvegarder la partie.', 'Activer / couper le son (M).'][menu.sel];
       text(loc, 12, 182, YEL); text(hint, 12, 196);
     } else menu.sub.draw();
   }
@@ -355,7 +356,7 @@ const UI = (() => {
         let y = 26;
         L.forEach((m, i) => {
           if (i === Game.party.length) { text('Réserve', 46, y, GRAY); y += 12; }
-          const spr = GFX.char(MEMBERS[m.id].sprite);
+          const spr = GFX.char(lookKey(m));
           ctx.save(); ctx.beginPath(); ctx.rect(46, y - 2, 24, 20); ctx.clip();
           ctx.drawImage(spr.down[0], 46, y - 4); ctx.restore();
           text(m.name, 74, y + 2, i === this.pick ? '#80f080' : i === this.sel ? '#fff' : '#c0c8e8');
@@ -403,7 +404,7 @@ const UI = (() => {
             const name = c === 'chichi' ? 'Chichi' : MEMBERS[c].name;
             const y = 38 + i * 24;
             if (met) {
-              const key = c === 'chichi' ? 'chichi' : MEMBERS[c].sprite;
+              const key = c === 'chichi' ? 'chichi' : charKey(c);
               const p = GFX.portrait(key);
               ctx.save(); ctx.beginPath(); ctx.rect(30, y - 4, 22, 20); ctx.clip(); ctx.drawImage(p, 30, y - 6, 20, 21); ctx.restore();
             }
@@ -420,6 +421,148 @@ const UI = (() => {
       },
     };
   }
+  // ---------------- Équipement ----------------
+  const DIRS4 = ['down', 'right', 'up', 'left'];
+  function drawPreview(key, x, y, scale = 2) { // sprite qui tourne sur lui-même
+    const spr = GFX.char(key), d = DIRS4[Math.floor(Game.frame / 50) % 4];
+    const f = [1, 0, 2, 0][Math.floor(Game.frame / 10) % 4];
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(x + 12 * scale, y + 31 * scale, 8 * scale, 2.5 * scale, 0, 0, 7); ctx.fill();
+    ctx.drawImage(spr[d][f], x, y, 24 * scale, 32 * scale);
+  }
+  function statLines(m, x, y, diff) {
+    const rows = [['PV', 'maxhp', 'hp'], ['Ki', 'maxki', 'ki'], ['Force', 'atk'], ['Défense', 'def'], ['Puissance', 'mag'], ['Vitesse', 'spd']];
+    rows.forEach(([label, k, dk], i) => {
+      const v = m[k], d = diff ? (diff[dk || k] || 0) : 0;
+      text(label, x, y + i * 11, GRAY);
+      FONT.drawRight(ctx, String(v + d), x + 74, y + i * 11, d > 0 ? GREEN : d < 0 ? RED : '#fff');
+      if (d) FONT.drawRight(ctx, (d > 0 ? '▲' : '▼'), x + 84, y + i * 11, d > 0 ? GREEN : RED);
+    });
+  }
+  function subEquip() {
+    return {
+      phase: 'member', msel: 0, ssel: 0, isel: 0, scroll: 0,
+      members() { return Game.allMembers(); },
+      items(m) {
+        const slot = SLOTS[this.ssel];
+        return [null].concat(Object.keys(Game.gear).filter(id => GEAR[id] && GEAR[id].slot === slot && Game.gear[id] > 0));
+      },
+      diffFor(m, id) {
+        const slot = SLOTS[this.ssel], old = m.equip && m.equip[slot], d = {};
+        if (old) for (const k in GEAR[old].stats) d[k] = (d[k] || 0) - GEAR[old].stats[k];
+        if (id) for (const k in GEAR[id].stats) d[k] = (d[k] || 0) + GEAR[id].stats[k];
+        return d;
+      },
+      update() {
+        const L = this.members(), m = L[this.msel];
+        const nav = (n, k) => { if (Input.repeat('up')) { this[k] = (this[k] + n - 1) % n; SND.sfx('cursor'); } if (Input.repeat('down')) { this[k] = (this[k] + 1) % n; SND.sfx('cursor'); } };
+        if (this.phase === 'member') {
+          nav(L.length, 'msel');
+          if (Input.pressed('b')) { menu.sub = null; SND.sfx('cancel'); }
+          if (Input.pressed('a')) { this.phase = 'slot'; this.ssel = 0; SND.sfx('confirm'); }
+        } else if (this.phase === 'slot') {
+          nav(SLOTS.length, 'ssel');
+          if (Input.pressed('b')) { this.phase = 'member'; SND.sfx('cancel'); }
+          if (Input.pressed('a')) { this.phase = 'item'; this.isel = 0; this.scroll = 0; SND.sfx('confirm'); }
+        } else {
+          const list = this.items(m);
+          nav(list.length, 'isel');
+          if (Input.pressed('b')) { this.phase = 'slot'; SND.sfx('cancel'); }
+          if (Input.pressed('a')) {
+            const id = list[this.isel], slot = SLOTS[this.ssel];
+            if (id && !canEquip(m, id)) { SND.sfx('buzz'); notify('Seul' + (GEAR[id].who.length > 1 ? 's ' : ' ') + GEAR[id].who.map(w => MEMBERS[w].name).join(', ') + ' peu' + (GEAR[id].who.length > 1 ? 'vent' : 't') + ' l\'utiliser.', 90); return; }
+            if (!id && !(m.equip && m.equip[slot])) { SND.sfx('buzz'); return; }
+            equipItem(m, slot, id);
+            Field.syncParty();
+            SND.sfx(id ? 'item' : 'cancel');
+            this.phase = 'slot';
+          }
+        }
+      },
+      draw() {
+        const L = this.members(), m = L[this.msel];
+        win(4, 4, 248, 168);
+        L.forEach((p, i) => {
+          const y = 12 + i * 31;
+          const spr = GFX.char(lookKey(p));
+          ctx.save(); ctx.beginPath(); ctx.rect(22, y - 2, 24, 28); ctx.clip(); ctx.drawImage(spr.down[0], 22, y - 4); ctx.restore();
+          text(p.name, 48, y + 6, i === this.msel ? '#fff' : '#c0c8e8');
+          if (i === this.msel && this.phase === 'member') cursor(10, y + 6);
+        });
+        ctx.fillStyle = '#8898e0'; ctx.fillRect(96, 10, 1, 156);
+        const slot = SLOTS[this.ssel], list = this.phase === 'item' ? this.items(m) : null;
+        const hover = list ? list[this.isel] : undefined;
+        const tmp = list ? { id: m.id, style: m.style, equip: Object.assign({}, m.equip, { [slot]: hover && canEquip(m, hover) ? hover : null }) } : m;
+        ctx.fillStyle = '#0c1040'; ctx.fillRect(102, 10, 56, 72);
+        drawPreview(lookKey(tmp), 106, 12);
+        statLines(m, 162, 12, list && (hover === null || canEquip(m, hover)) ? this.diffFor(m, hover) : null);
+        SLOTS.forEach((sl, i) => {
+          const y = 90 + i * 24;
+          const id = m.equip && m.equip[sl];
+          text(SLOT_NAMES[sl], 112, y, GRAY);
+          text(id ? GEAR[id].name : '—', 112, y + 10, this.phase !== 'member' && i === this.ssel ? '#fff' : '#c0c8e8');
+          if (this.phase === 'slot' && i === this.ssel) cursor(100, y + 10);
+        });
+        if (list) { // liste des objets par-dessus les emplacements, l'aperçu reste visible
+          const h = Math.min(list.length, 6) * 12 + 10;
+          win(100, 86, 150, h);
+          this.scroll = clamp(this.scroll, Math.max(0, this.isel - 5), this.isel);
+          list.slice(this.scroll, this.scroll + 6).forEach((id, i) => {
+            const idx = i + this.scroll, ok = !id || canEquip(m, id);
+            text(id ? GEAR[id].name : '— Retirer —', 116, 91 + i * 12, !ok ? '#7078a0' : idx === this.isel ? '#fff' : '#c0c8e8');
+            if (id) FONT.drawRight(ctx, 'x' + Game.gear[id], 244, 91 + i * 12, '#c0c8e8');
+            if (idx === this.isel) cursor(104, 91 + i * 12);
+          });
+        }
+        if (this.phase === 'member') { text('Équiper qui ?', 12, 182, YEL); text('L\'équipement apparaît sur le personnage !', 12, 196, GRAY); }
+        else if (this.phase === 'slot') { const id = m.equip && m.equip[slot]; text(id ? GEAR[id].desc : 'Rien d\'équipé.', 12, 182); text(id ? gearDesc(id) : 'Z : changer   X : retour', 12, 196, id ? CYAN : GRAY); }
+        else if (hover) { text(GEAR[hover].desc, 12, 182); text(gearDesc(hover) + (canEquip(m, hover) ? '' : '  (pas pour ' + m.name + ')'), 12, 196, canEquip(m, hover) ? CYAN : RED); }
+        else { text('Retirer l\'objet porté.', 12, 182); text('Z : valider   X : retour', 12, 196, GRAY); }
+      },
+    };
+  }
+
+  // ---------------- Style de Goku ----------------
+  function subStyle() {
+    return {
+      sel: 0,
+      update() {
+        const g = Game.member('goku');
+        const n = STYLE_KEYS.length;
+        if (Input.repeat('up')) { this.sel = (this.sel + n - 1) % n; SND.sfx('cursor'); }
+        if (Input.repeat('down')) { this.sel = (this.sel + 1) % n; SND.sfx('cursor'); }
+        const dx = Input.repeat('right') ? 1 : Input.repeat('left') ? -1 : 0;
+        if (dx) {
+          const key = STYLE_KEYS[this.sel], vals = STYLE_OPTS[key].vals, st = styleOf(g);
+          let v = st[key];
+          do { v = (v + dx + vals.length) % vals.length; } while (!styleUnlocked(key, v));
+          st[key] = v; g.style = st;
+          Field.syncParty();
+          SND.sfx('cursor');
+        }
+        if (Input.pressed('a') || Input.pressed('b')) { menu.sub = null; SND.sfx('confirm'); }
+      },
+      draw() {
+        const g = Game.member('goku'), st = styleOf(g), key = lookKey(g);
+        win(4, 4, 248, 168);
+        FONT.drawCentered(ctx, 'Style de Goku', 128, 10, YEL);
+        ctx.fillStyle = '#0c1040'; ctx.fillRect(14, 26, 80, 104);
+        drawPreview(key, 18, 30, 3);
+        const por = GFX.portrait(key);
+        ctx.fillStyle = '#0c1040'; ctx.fillRect(34, 134, 42, 32);
+        ctx.save(); ctx.beginPath(); ctx.rect(35, 135, 40, 30); ctx.clip(); ctx.drawImage(por, 35, 135); ctx.restore();
+        STYLE_KEYS.forEach((k, i) => {
+          const y = 30 + i * 22, o = STYLE_OPTS[k], v = o.vals[st[k]];
+          text(o.name, 108, y, i === this.sel ? '#fff' : GRAY);
+          const col = v[1] || null;
+          if (col) { ctx.fillStyle = '#000'; ctx.fillRect(107, y + 11, 10, 8); ctx.fillStyle = col; ctx.fillRect(108, y + 12, 8, 6); }
+          FONT.draw(ctx, '< ' + v[0] + ' >', col ? 122 : 108, y + 10, i === this.sel ? YEL : '#c0c8e8');
+          if (i === this.sel) cursor(96, y + 4);
+        });
+        text('Haut/Bas : choisir   Gauche/Droite : changer', 12, 182);
+        text(Game.flags.goldHair ? 'Coiffure secrète débloquée !' : 'Un style secret s\'obtient chez Tortue Géniale...', 12, 196, GRAY);
+      },
+    };
+  }
   function updateMenu() {
     if (menu.sub) { menu.sub.update(); return; }
     if (Input.repeat('up')) { menu.sel = (menu.sel + MENU_ITEMS.length - 1) % MENU_ITEMS.length; SND.sfx('cursor'); }
@@ -432,6 +575,8 @@ const UI = (() => {
       else if (s === 'Techniques') menu.sub = subTechs();
       else if (s === 'Boules') menu.sub = subBalls();
       else if (s === 'Équipe') menu.sub = subTeam();
+      else if (s === 'Équipement') menu.sub = subEquip();
+      else if (s === 'Style') menu.sub = subStyle();
       else if (s === 'Journal') menu.sub = subJournal();
       else if (s === 'Sauver') {
         const ok = Game.save();
@@ -453,18 +598,18 @@ const UI = (() => {
     if (Input.repeat('down')) { shop.sel = (shop.sel + 1) % n; SND.sfx('cursor'); }
     if (Input.pressed('b') || (Input.pressed('a') && shop.sel === shop.stock.length)) { const r = shop.res; shop = null; SND.sfx('cancel'); r(); return; }
     if (Input.pressed('a')) {
-      const id = shop.stock[shop.sel], it = ITEMS[id];
-      if (Game.zeni >= it.price) { Game.zeni -= it.price; Game.addItem(id); SND.sfx('coin'); } else SND.sfx('buzz');
+      const id = shop.stock[shop.sel], it = itemDef(id);
+      if (Game.zeni >= it.price) { Game.zeni -= it.price; Game.give(id); SND.sfx('coin'); } else SND.sfx('buzz');
     }
   }
   function drawShop() {
     const h = (shop.stock.length + 1) * 12 + 10;
     win(24, 20, 208, h);
     shop.stock.forEach((id, i) => {
-      const it = ITEMS[id];
-      text(it.name, 42, 25 + i * 12, Game.zeni >= it.price ? '#fff' : '#7078a0');
+      const it = itemDef(id), gear = !!GEAR[id];
+      text(it.name, 42, 25 + i * 12, Game.zeni >= it.price ? (gear ? '#a8f0ff' : '#fff') : '#7078a0');
       FONT.drawRight(ctx, it.price + ' Z', 176, 25 + i * 12, YEL);
-      FONT.drawRight(ctx, 'x' + (Game.items[id] || 0), 222, 25 + i * 12, '#c0c8e8');
+      FONT.drawRight(ctx, 'x' + (gear ? Game.gearOwned(id) : Game.items[id] || 0), 222, 25 + i * 12, '#c0c8e8');
       if (i === shop.sel) cursor(30, 25 + i * 12);
     });
     text('Partir', 42, 25 + shop.stock.length * 12);
@@ -473,8 +618,9 @@ const UI = (() => {
     text('Zénis : ' + Game.zeni, 32, 25 + h + 4, YEL);
     win(8, 170, 240, 46);
     const id = shop.stock[shop.sel];
-    text(id ? ITEMS[id].desc : 'Revenez quand vous voulez !', 16, 176);
-    text('Z : acheter   X : partir', 16, 196, GRAY);
+    if (id && GEAR[id]) { text(GEAR[id].desc, 16, 175); text(SLOT_NAMES[GEAR[id].slot] + ' : ' + gearDesc(id) + (GEAR[id].who ? ' (' + GEAR[id].who.map(w => MEMBERS[w].name).join(', ') + ')' : ''), 16, 187, CYAN); }
+    else text(id ? ITEMS[id].desc : 'Revenez quand vous voulez !', 16, 176);
+    text('Z : acheter   X : partir', 16, 201, GRAY);
   }
 
   // ---------------- Carte de chapitre ----------------

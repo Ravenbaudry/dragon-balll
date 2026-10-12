@@ -13,7 +13,7 @@ const Battle = (() => {
 
   // ---------- Combattants ----------
   function partyC(m, actor) {
-    const c = { side: 'p', m, id: m.id, name: m.name, sprite: MEMBERS[m.id].sprite, x: actor.x, y: actor.y, atb: 30 + Math.random() * 40, flash: 0, z: 0, pose: null, walking: false, queued: false, stun: 0, anim: 0, actor };
+    const c = { side: 'p', m, id: m.id, name: m.name, sprite: lookKey(m), x: actor.x, y: actor.y, atb: 30 + Math.random() * 40, flash: 0, z: 0, pose: null, walking: false, queued: false, stun: 0, anim: 0, actor };
     for (const k of ['hp', 'maxhp', 'ki', 'maxki', 'atk', 'def', 'mag', 'spd']) Object.defineProperty(c, k, { get: () => m[k], set: v => { m[k] = v; } });
     return c;
   }

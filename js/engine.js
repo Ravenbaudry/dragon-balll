@@ -70,18 +70,26 @@ const wait = n => Tasks.wait(n);
 const COMPANIONS = ['bulma', 'krillin', 'yamcha', 'oolong', 'chichi'];
 const Game = {
   mode: 'title', frame: 0, playFrames: 0,
-  party: [], reserve: [], items: {}, zeni: 0, balls: [], flags: {}, aff: {}, karma: 0, quests: {},
+  party: [], reserve: [], items: {}, gear: {}, train: {}, zeni: 0, balls: [], flags: {}, aff: {}, karma: 0, quests: {},
   mapId: null, spawn: null, shake: 0,
   newGame() {
     this.party = [makeMember('goku', 1)];
     this.reserve = [];
     this.items = { tonique: 3 };
+    this.gear = {}; this.train = {};
+    equipItem(this.party[0], 'arme', 'nyoibo', true); // le bâton de Grand-père Gohan
     this.zeni = 50; this.balls = []; this.flags = {}; this.playFrames = 0;
     this.aff = {}; for (const c of COMPANIONS) this.aff[c] = 0;
     this.karma = 0; this.quests = {};
   },
   addItem(id, n = 1) { this.items[id] = (this.items[id] || 0) + n; },
   useItemStock(id) { if (this.items[id] > 0) { this.items[id]--; if (!this.items[id]) delete this.items[id]; return true; } return false; },
+  addGear(id, n = 1) { this.gear[id] = (this.gear[id] || 0) + n; },
+  useGear(id) { if (this.gear[id] > 0) { this.gear[id]--; if (!this.gear[id]) delete this.gear[id]; return true; } return false; },
+  // nombre total possédé (inventaire + porté)
+  gearOwned(id) { return (this.gear[id] || 0) + this.allMembers().filter(m => m.equip && SLOTS.some(s => m.equip[s] === id)).length; },
+  // gagne un objet ou un équipement
+  give(id, n = 1) { if (GEAR[id]) this.addGear(id, n); else this.addItem(id, n); },
   member(id) { return this.party.find(m => m.id === id) || this.reserve.find(m => m.id === id); },
   inParty(id) { return this.party.some(m => m.id === id); },
   // Ajoute un compagnon : dans l'équipe active s'il reste de la place, sinon en réserve.
@@ -89,6 +97,7 @@ const Game = {
     if (this.member(id)) return 'party';
     const lv = Math.max(1, ...this.party.concat(this.reserve).map(m => m.lv));
     const m = makeMember(id, lv);
+    if (id === 'yamcha') equipItem(m, 'arme', 'sabre', true); // le loup du désert garde son sabre
     if (this.party.length < 3) { this.party.push(m); return 'party'; }
     this.reserve.push(m); return 'reserve';
   },
@@ -116,7 +125,7 @@ const Game = {
   },
   save() {
     const data = {
-      v: 2, party: this.party, reserve: this.reserve, items: this.items, zeni: this.zeni, balls: this.balls, flags: this.flags,
+      v: 2, party: this.party, reserve: this.reserve, items: this.items, gear: this.gear, train: this.train, zeni: this.zeni, balls: this.balls, flags: this.flags,
       aff: this.aff, karma: this.karma, quests: this.quests,
       mapId: Field.mapId, x: Field.leader().x, y: Field.leader().y, dir: Field.leader().dir, playFrames: this.playFrames,
     };
@@ -131,7 +140,10 @@ const Game = {
     if (!d) return false;
     this.party = d.party; this.reserve = d.reserve || []; this.items = d.items; this.zeni = d.zeni; this.balls = d.balls; this.flags = d.flags;
     this.aff = d.aff || {}; this.karma = d.karma || 0; this.quests = d.quests || {}; this.playFrames = d.playFrames || 0;
+    this.gear = d.gear || {}; this.train = d.train || {};
     for (const m of this.allMembers()) refreshTechs(m);
+    // anciennes sauvegardes : Goku récupère son bâton
+    if (!d.gear) { const g = this.member('goku'); if (g && !(g.equip && g.equip.arme)) equipItem(g, 'arme', 'nyoibo', true); }
     this.spawn = { mapId: d.mapId, x: d.x, y: d.y, dir: d.dir };
     return true;
   },

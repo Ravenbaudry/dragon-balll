@@ -45,11 +45,23 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 - **Finale** : Pilaf invoque Shenron, et il faut faire un vœu avant lui. Les vœux disponibles dépendent de ton aventure (revoir Grand-père Gohan, rebâtir le château de Gyumao, le vœu d'un compagnon…).
 - **Épilogue et 3 fins** : chaque personnage connaît un destin différent selon tes choix, et ton karma décide de la fin (Le Cœur Pur, Le Petit Héros ou Le Garnement).
 
+### Entraînement, équipement et style
+
+- **Entraînement chez Tortue Géniale** : après sa rencontre, parle-lui à la Kame House pour lancer 4 mini-jeux simples, chacun avec un rang de C à S :
+  - *Rythme de la Tortue* : un « Guitar Hero » simplifié à trois colonnes (Gauche, Haut, Droite) ; il augmente le Ki ;
+  - *Livraison du lait* : une course où l'on saute les obstacles et attrape les bouteilles (Vitesse) ;
+  - *Casse-briques* : frapper au bon moment sur une jauge de précision (Force) ;
+  - *Méditation* : retenir et reproduire une suite de flèches (Puissance).
+  
+  Chaque héros peut s'entraîner. Battre son record rend plus fort, et un rang S rapporte un équipement exclusif.
+- **Équipement visible sur les sprites** : armes (bâton, sabre, gants), tenues (plastron, kimono de la Tortue, armure, carapace) et couvre-chefs (bandeaux, lunettes, casque à cornes). Ils apparaissent sur le terrain, en combat et dans les portraits (menu → Équipement).
+- **Personnalisation de Goku** (menu → Style) : couleur du kimono, de la ceinture, des bottes et des cheveux, queue de singe, emblème… et un style secret à débloquer.
+
 ### Et aussi
 
 - **8 boss** : l'Ours Brigand, Krilin (duel amical), le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan et la Pilaf Machine.
 - **13 zones**, dont le campement, le Mont Frypan, le cœur du volcan et les cachots du château.
-- Boutiques, auberge, coffres, Dragon Radar (menu → Boules), objets clés, sauvegarde.
+- Boutiques (objets et équipements), auberge, coffres, Dragon Radar (menu → Boules), objets clés, sauvegarde.
 
 ## Structure du code
 
@@ -61,10 +73,12 @@ js/sprites.js     sprites des personnages (têtes, corps, palettes)
 js/monsters.js    monstres et boss (grilles + palettes)
 js/gfx.js         tuiles procédurales, arbres, bâtiments, objets
 js/data.js        héros, techniques, objets, ennemis, quêtes
+js/gear.js        équipements visibles et personnalisation de Goku
 js/engine.js      entrées, tâches asynchrones, état de la partie, sauvegarde
 js/ui.js          fenêtres, dialogues et portraits, menu, journal, boutique
 js/field.js       exploration : cartes, collisions, PNJ, ennemis visibles
 js/battle.js      système de combat ATB
+js/minigames.js   mini-jeux d'entraînement de Tortue Géniale
 js/maps.js        cartes, événements, scénario et choix
 js/main.js        boucle principale, écran titre, finale, épilogue et crédits
 tools/standalone.js  génère une version en un seul fichier HTML

@@ -59,11 +59,11 @@ function applyBonus(m, b) {
 }
 function levelUp(m) {
   m.lv++;
-  const s = statsAt(m.id, m.lv), b = m.bonus || {};
-  const nhp = s.hp + (b.hp || 0), nki = s.ki + (b.ki || 0);
+  const s = statsAt(m.id, m.lv), b = m.bonus || {}, e = gearStats(m);
+  const nhp = s.hp + (b.hp || 0) + (e.hp || 0), nki = s.ki + (b.ki || 0) + (e.ki || 0);
   m.hp += nhp - m.maxhp; m.ki += nki - m.maxki;
   m.maxhp = nhp; m.maxki = nki;
-  for (const k of ['atk', 'def', 'mag', 'spd']) m[k] = s[k] + (b[k] || 0);
+  for (const k of ['atk', 'def', 'mag', 'spd']) m[k] = s[k] + (b[k] || 0) + (e[k] || 0);
   return refreshTechs(m);
 }
 

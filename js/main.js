@@ -479,7 +479,7 @@ const Main = (() => {
     FONT.drawCentered(ctx, epi.i === epi.slides.length - 1 ? s.title : 'Épilogue — ' + s.title, 128, 18, UI.YEL);
     ctx.fillStyle = '#c0a040'; ctx.fillRect(48, 32, 160, 1);
     const figs = [];
-    for (const c of s.chars || []) figs.push({ img: GFX.char(c).down[0], w: 48, h: 64 });
+    for (const c of s.chars || []) figs.push({ img: GFX.char(charKey(c)).down[0], w: 48, h: 64 });
     if (s.mon) { const m = GFX.monster(s.mon); const k = m.h > 30 ? 1.5 : 2; figs.push({ img: m.img, w: m.w * k, h: m.h * k }); }
     const gap = 8, total = figs.reduce((a, f) => a + f.w, 0) + gap * Math.max(0, figs.length - 1);
     let x = 128 - total / 2;
@@ -527,7 +527,7 @@ const Main = (() => {
     }
     credits.end = y;
     const cx = ((t * 0.6) % (SW + 120)) - 60;
-    ctx.drawImage(GFX.char('goku').right[0], Math.round(cx + 5), 190 - 22 + Math.round(Math.sin(t * 0.08) * 3));
+    ctx.drawImage(GFX.char(charKey('goku')).right[0], Math.round(cx + 5), 190 - 22 + Math.round(Math.sin(t * 0.08) * 3));
     ctx.drawImage(kintoun(), Math.round(cx), 190 + Math.round(Math.sin(t * 0.08) * 3));
   }
   function updateCredits() {
@@ -551,6 +551,7 @@ const Main = (() => {
         break;
       }
       case 'gameover': updateGameOver(); break;
+      case 'minigame': MiniGames.update(); break;
       case 'epilogue': updateEpilogue(); break;
       case 'ending': updateCredits(); break;
     }
@@ -564,6 +565,7 @@ const Main = (() => {
         if (Field.battle) Battle.drawUI();
         break;
       case 'gameover': drawGameOver(); break;
+      case 'minigame': MiniGames.draw(); break;
       case 'epilogue': drawEpilogue(); break;
       case 'ending': drawCredits(); break;
     }
