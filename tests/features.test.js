@@ -108,6 +108,15 @@ module.exports = {
       r.errors(G.errors); await G.close();
     }
 
+    // ---- un passage bloqué se libère dès que sa condition change (sortie nord de la plage après Tortue Géniale) ----
+    {
+      const G = await openGame(browser, url);
+      await G.ev('__test("plage", 28.5, 4, {lv:7, party:["goku","bulma"], flags:{turtle:true, roshi:false}}); Game.flags.roshi = true; 1');
+      await G.hold('ArrowUp', 1500);
+      r.step('sortie nord de la plage ouverte après la rencontre avec Tortue Géniale', await G.ev('Field.mapId === "route" && !UI.blocking()'));
+      r.errors(G.errors); await G.close();
+    }
+
     // ---- voyage en Kinto'un ----
     {
       const G = await openGame(browser, url);

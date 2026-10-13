@@ -1,6 +1,6 @@
 // Service worker : le jeu reste jouable hors connexion une fois installé.
 // Stratégie « réseau d'abord » : en ligne on reçoit toujours la dernière version, hors ligne on joue depuis le cache.
-const CACHE = 'dbq-v3';
+const CACHE = 'dbq-v4';
 const FILES = [
   './',
   'index.html',

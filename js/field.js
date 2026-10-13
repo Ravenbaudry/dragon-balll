@@ -295,6 +295,7 @@ const Field = (() => {
     for (const e of F.entities) {
       const b = e.gone ? null : touchBox(e);
       if (!b) continue;
+      if (e.kind === 'trigger' && e.cond && !e.cond()) { e.gone = true; continue; } // condition devenue fausse en cours de route (ex. Tortue Géniale rencontrée)
       if (inBox(L.x, L.y - 2, b)) {
         now.add(e);
         if (!F.touching.has(e)) {
