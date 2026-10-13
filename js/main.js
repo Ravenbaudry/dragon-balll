@@ -1,6 +1,6 @@
 // Boucle principale, écran titre, game over, finale (Shenron) et crédits.
 const Main = (() => {
-  let titleSel = 0, overSel = 0, credits = null;
+  let titleSel = 0, overSel = 0, credits = null, slotPick = null;
   const textCache = {};
   function bigText(str, cx, y, scale, col, outline = K) {
     const key = str + col + outline;
@@ -58,21 +58,53 @@ const Main = (() => {
     // menu
     const opts = menuOptions();
     opts.forEach((o, i) => {
-      const y = 168 + i * 13;
+      const y = 164 + i * 12;
       FONT.drawCentered(ctx, o, 128, y, i === titleSel ? '#ffffff' : '#a0a0c8');
-      if (i === titleSel) UI.cursor(128 - FONT.measure(o) / 2 - 12, y);
+      if (i === titleSel && !slotPick) UI.cursor(128 - FONT.measure(o) / 2 - 12, y);
     });
-    FONT.drawCentered(ctx, 'Jeu de fan non officiel', 128, 208, '#8888b0');
+    FONT.drawCentered(ctx, 'Jeu de fan non officiel', 128, 210, '#8888b0');
+    if (slotPick) drawSlots();
   }
-  function menuOptions() { return Game.hasSave() ? ['Continuer', 'Nouvelle partie'] : ['Nouvelle partie']; }
+  function menuOptions() { return Game.hasSave() ? ['Continuer', 'Nouvelle partie', 'Options'] : ['Nouvelle partie', 'Options']; }
+  function drawSlots() { // choix de l'emplacement à reprendre
+    ctx.fillStyle = 'rgba(0,0,20,0.6)'; ctx.fillRect(0, 0, SW, SH);
+    UI.win(16, 40, 224, 132);
+    FONT.drawCentered(ctx, 'Reprendre quelle partie ?', 128, 46, UI.YEL);
+    [1, 2, 3].forEach((n, i) => {
+      const d = Game.loadData(n), y = 64 + i * 34, on = i === slotPick.sel;
+      if (on) { ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(22, y - 3, 212, 31); UI.cursor(24, y + 6); }
+      if (!d) { FONT.draw(ctx, n + ' : vide', 40, y + 6, '#6870a0'); return; }
+      const map = MAPS[d.mapId], lead = d.party && d.party[0];
+      FONT.draw(ctx, n + ' : ' + (map ? map.name : '?'), 40, y, on ? '#fff' : '#c0c8e8');
+      const s = Math.floor((d.playFrames || 0) / 60);
+      FONT.draw(ctx, 'Niv ' + (lead ? lead.lv : '?') + '   ' + Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + '   ★' + (d.balls || []).length + '/7', 40, y + 12, '#a0a8d8');
+      (d.party || []).slice(0, 3).forEach((m, k) => { const sp = GFX.char(MEMBERS[m.id] ? MEMBERS[m.id].sprite : m.id); ctx.save(); ctx.beginPath(); ctx.rect(176 + k * 18, y - 2, 18, 26); ctx.clip(); ctx.drawImage(sp.down[0], 173 + k * 18, y - 6); ctx.restore(); });
+    });
+  }
   function updateTitle() {
     const opts = menuOptions();
     if (SND.current() !== 'title' && Game.frame > 2) SND.playMusic('title');
-    if (Input.repeat('up') || Input.repeat('down')) { titleSel = (titleSel + 1) % opts.length; SND.sfx('cursor'); }
+    if (slotPick) {
+      if (Input.repeat('up')) { slotPick.sel = (slotPick.sel + 2) % 3; SND.sfx('cursor'); }
+      if (Input.repeat('down')) { slotPick.sel = (slotPick.sel + 1) % 3; SND.sfx('cursor'); }
+      if (Input.pressed('b')) { slotPick = null; SND.sfx('cancel'); return; }
+      if (Input.pressed('a')) {
+        if (!Game.loadData(slotPick.sel + 1)) { SND.sfx('buzz'); return; }
+        SND.sfx('confirm'); const n = slotPick.sel + 1; slotPick = null; continueGame(n);
+      }
+      return;
+    }
+    if (Input.repeat('up')) { titleSel = (titleSel + opts.length - 1) % opts.length; SND.sfx('cursor'); }
+    if (Input.repeat('down')) { titleSel = (titleSel + 1) % opts.length; SND.sfx('cursor'); }
     if (Input.pressed('a')) {
       SND.init();
       SND.sfx('confirm');
-      if (opts[titleSel] === 'Continuer') continueGame(); else newGame();
+      const o = opts[titleSel];
+      if (o === 'Continuer') {
+        const used = Game.slots().filter(Boolean).length;
+        if (used > 1) slotPick = { sel: Game.lastSlot() - 1 }; else continueGame();
+      } else if (o === 'Options') UI.openOptions();
+      else newGame();
     }
   }
   function resetWorld() {
@@ -89,9 +121,9 @@ const Main = (() => {
     Field.load('maison', 5, 4, 'up');
     await MAPS.maison.onEnter();
   }
-  async function continueGame() {
+  async function continueGame(slot) {
     resetWorld();
-    if (!Game.load()) return newGame();
+    if (!Game.load(slot)) return newGame();
     UI.fade.v = 1;
     Game.mode = 'field';
     const s = Game.spawn;
@@ -125,7 +157,7 @@ const Main = (() => {
     if (Input.repeat('up') || Input.repeat('down')) { overSel = (overSel + 1) % opts.length; SND.sfx('cursor'); }
     if (Input.pressed('a')) {
       SND.sfx('confirm');
-      if (opts[overSel] === 'load') continueGame();
+      if (opts[overSel] === 'load') continueGame(Game.slot || undefined);
       else { Game.mode = 'title'; titleSel = 0; SND.playMusic('title'); }
     }
   }
@@ -678,18 +710,18 @@ const Main = (() => {
   }
 
   // ---------------- Boucle ----------------
-  function step() {
+  function step(extra) {
     Input.poll();
     Game.frame++;
     Tasks.tick();
     if (Input.pressed('mute')) { const m = SND.toggleMute(); UI.notify(m ? 'Son coupé (M)' : 'Son activé (M)', 60); }
     switch (Game.mode) {
-      case 'title': if (!UI.blocking()) updateTitle(); break;
+      case 'title': if (!UI.update()) updateTitle(); break;
       case 'field': {
         const consumed = UI.update();
         if (Field.battle) Battle.update(consumed);
         Field.update(consumed);
-        Game.playFrames++;
+        if (!extra) Game.playFrames++;
         break;
       }
       case 'gameover': updateGameOver(); break;
@@ -706,6 +738,7 @@ const Main = (() => {
         Field.draw();
         if (Shenron.active) drawShenron(Field.cx, Field.cy);
         Tournoi.draw();
+        if (!Shenron.active && !Moon.active) Hud.draw();
         if (Moon.active) drawMoon();
         if (Field.battle) Battle.drawUI();
         break;
@@ -717,7 +750,7 @@ const Main = (() => {
     }
     UI.draw();
   }
-  let last = 0, acc = 0;
+  let last = 0, acc = 0, fast = 0;
   let errors = 0;
   function loop(now) {
     requestAnimationFrame(loop);
@@ -725,7 +758,14 @@ const Main = (() => {
     acc += Math.min(100, now - last); last = now;
     let n = 0;
     try {
-      while (acc >= 1000 / 60 && n < 4) { step(); acc -= 1000 / 60; n++; }
+      while (acc >= 1000 / 60 && n < 4) {
+        step(); acc -= 1000 / 60; n++;
+        // combats accélérés (options) : des pas de jeu en plus pendant les combats
+        if (Game.mode === 'field' && Field.battle && Opt.battleSpeed()) {
+          fast += Opt.battleSpeed();
+          while (fast >= 1 && Field.battle) { step(true); fast--; }
+        }
+      }
       render();
     } catch (e) {
       if (errors++ < 5) console.error(e);

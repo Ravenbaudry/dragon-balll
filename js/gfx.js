@@ -158,6 +158,7 @@ const GFX = (() => {
   }
   function buildChar(name) {
     const def = CHARS[name];
+    if (def.build) return def.build({ mk, mirror, flash, rotate90, monster }); // héros non humanoïdes (Puar)
     const pal = charPal(def);
     const out = { grids: {} };
     for (const dir of ['down', 'up', 'right']) {
@@ -220,6 +221,7 @@ const GFX = (() => {
     if (portraitCache[name]) return portraitCache[name];
     const def = CHARS[name];
     if (!def) return null;
+    if (def.build) return (portraitCache[name] = monPortrait(def.mon));
     const g = composeChar(def, 'down', 0);
     const top = def.short ? 2 : 0;
     const crop = g.slice(top, top + 21).map(r => r.slice(2, 22));

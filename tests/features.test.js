@@ -61,8 +61,8 @@ module.exports = {
       }
       for (let i = 0; i < 40 && (await G.ev('Field.locks || UI.blocking()')); i++) await G.key('Enter');
       r.step('entraînement : rang S au rythme, Ki +12, bandeau gagné', await G.ev(`Game.party[0].maxki === ${ki0} + 12 && Game.gear.bandeau_kame === 1 && Game.train.goku.rythme === 4`));
-      // menu Équipement : Goku > Tête > Bandeau de la Tortue
-      await G.key('Escape'); await G.key('ArrowDown', 2); await G.key('Enter'); await G.key('Enter');
+      // menu Équipement (4e entrée) : Goku > Tête > Bandeau de la Tortue
+      await G.key('Escape'); await G.key('ArrowDown', 3); await G.key('Enter'); await G.key('Enter');
       await G.key('ArrowDown', 2); await G.key('Enter'); await G.key('ArrowDown'); await G.key('Enter');
       r.step('équipement porté et visible sur le terrain', await G.ev('Game.party[0].equip.tete === "bandeau_kame" && Field.actors[0].sprite.includes("bandeau_kame")'));
       await G.key('Escape'); await G.key('Escape');
@@ -112,19 +112,26 @@ module.exports = {
     {
       const G = await openGame(browser, url);
       await G.ev('__test("paozu", 11, 9, {lv:3, flags:{roshi:false}})');
-      await G.key('Escape'); await G.key('ArrowDown', 5); await G.key('Enter'); await G.wait(200);
+      await G.key('Escape'); await G.key('ArrowDown', 7); await G.key('Enter'); await G.wait(200);
       r.step('Kinto\'un indisponible avant de recevoir le nuage', await G.ev('Game.mode === "field" && !WorldMap.active()'));
       await G.key('Escape');
       await G.ev(`__test("plage", 12, 8, {lv:12, party:["goku","bulma","krillin"], flags:{roshi:true, kintounUsed:true, papayeIntro:true, ${visited}}})`);
-      const bad = [];
-      for (let i = 0; i < ALL_SPOTS.length; i++) {
+      // vol libre : on survole une île secrète pour la découvrir
+      await G.ev('Field.run(() => WorldMap.travel()); 1'); await G.wait(300);
+      await G.ev('(() => { const W = WorldMap.state(), s = WorldMap.SPOTS.find(p => p.id === "ile_tortue"); W.x = s.x + 10; W.y = s.y; })()'); await G.wait(100);
+      r.step('vol libre : une île secrète se découvre en la survolant', await G.ev('!!Game.flags.decouvert_ile_tortue'));
+      await G.key('x'); await G.until('Game.mode === "field" && !UI.blocking()', 5000);
+      await G.ev("Object.assign(Game.flags, {decouvert_ile_cachee: true, ileTortueIntro: true, ileCacheeIntro: true}); 1");
+      const DEST = ALL_SPOTS.concat(['ile_tortue', 'ile_cachee']), bad = [];
+      for (const id of DEST) {
         await G.ev('Field.run(() => WorldMap.travel()); 1'); await G.wait(300);
-        await G.ev(`WorldMap.state().sel = ${i}; 1`); await G.key('Enter');
-        const ok = await G.until(`Field.mapId === "${ALL_SPOTS[i]}" && !Field.locks && !UI.blocking() && Game.mode === "field"`, 15000);
+        await G.ev(`(() => { const W = WorldMap.state(), s = WorldMap.SPOTS.find(p => p.id === "${id}"); W.x = s.x; W.y = s.y; })()`); await G.wait(80);
+        await G.key('Enter');
+        const ok = await G.until(`Field.mapId === "${id}" && !Field.locks && !UI.blocking() && Game.mode === "field"`, 15000);
         const free = await G.ev('(() => { const L = Field.leader(); return !Field.blocked(L.x, L.y, null) && [[0,-6],[0,6],[-6,0],[6,0]].some(([dx,dy]) => !Field.blocked(L.x+dx, L.y+dy, null)); })()');
-        if (!ok || !free) bad.push(ALL_SPOTS[i]);
+        if (!ok || !free) bad.push(id);
       }
-      r.step('vol et atterrissage vers les ' + ALL_SPOTS.length + ' destinations', !bad.length, bad.join(', '));
+      r.step('vol et atterrissage vers les ' + DEST.length + ' destinations (dont 2 îles secrètes)', !bad.length, bad.join(', '));
       await G.ev(`__test("maison", 5, 4, {flags:{roshi:true, ${visited}}})`);
       await G.ev('Field.run(() => WorldMap.travel()); 1'); await G.wait(400);
       r.step('le nuage refuse de venir à l\'intérieur', await G.ev('UI.blocking() && !WorldMap.active()'));

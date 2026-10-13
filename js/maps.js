@@ -805,7 +805,7 @@ MAPS.village = {
     savePt(12, 11),
     npc('shopkeeper', 'villM2', 6, 10, async () => {
       await say('Marchand', 'Bienvenue à la boutique du village ! Toniques, boissons... tout pour l\'aventure !');
-      await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie', 'bandeau', 'baton_bambou', 'gants_cuir', 'plastron']);
+      await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie', 'remede', 'bandeau', 'baton_bambou', 'gants_cuir', 'plastron', 'masque', 'oreiller']);
     }),
     npc('innkeeper', 'villF2', 31, 10, async () => {
       const r = await ask('Aubergiste', "Bienvenue à l'auberge ! Une bonne nuit pour toute l'équipe : 15 Zénis. Ça vous dit ?", ['Dormir (15 Z)', 'Non merci'], { cancel: 1 });
@@ -1084,7 +1084,7 @@ MAPS.frypan = {
     chest('fry1', 32, 12, 'super_tonique', 2),
     chest('fry2', 3, 12, 'capsule_vie'),
     npc('gyumao', null, 15.5, 8, gyumaoTalk, { mon: 'gyumao', box: [-14, -10, 28, 10] }),
-    npc('chichi_npc', 'chichi', 18, 8.6, chichiTalk, { cond: () => Game.flags.metChichi }),
+    npc('chichi_npc', 'chichi', 18, 8.6, chichiTalk, { cond: () => Game.flags.metChichi && !Game.member('chichi') }),
     { kind: 'trigger', tx: 7, ty: 14, tw: 2, th: 2, cond: () => !Game.flags.metChichi, once: true, run: chichiEvent },
     fire(12, 7, () => !Game.flags.fireOut && !Game.flags.castleDestroyed, 1.4),
     fire(18, 7, () => !Game.flags.fireOut && !Game.flags.castleDestroyed, 1.4),
@@ -1147,7 +1147,8 @@ async function chichiEvent() {
   c.gone = true;
   Field.addEntity({ kind: 'npc', id: 'chichi_npc', sprite: 'chichi', x: 18 * 16 + 8, y: 8 * 16 + 24, talk: chichiTalk });
 }
-async function chichiTalk() {
+async function chichiTalk(e) {
+  if (Game.flags.ch8 && !Game.member('chichi')) { await Heroes.recruitChichi(e); return; }
   if (Game.flags.fireOut) await say('Chichi', Game.flags.chichiPromise ? "Goku, n'oublie pas ta promesse ! Je t'attendrai !" : 'Merci, Goku ! Papa est tellement heureux !');
   else if (Game.flags.castleDestroyed) await say('Chichi', 'Hmpf ! Tu as détruit notre maison ! Je ne te parle plus !');
   else await say('Chichi', "L'Esprit du Volcan vit tout au fond de la grotte, à l'est. Sois prudent, Goku...");

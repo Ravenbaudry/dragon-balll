@@ -72,6 +72,7 @@ const Field = (() => {
       }
     }
     F.base = c;
+    F.version = (F.version || 0) + 1; // la mini-carte se redessine quand la carte change
   }
   function buildObjects() {
     const objs = [];
@@ -168,7 +169,8 @@ const Field = (() => {
     for (const a of F.actors) { a.x = x; a.y = y; a.dir = dir; a.moving = false; }
     F.history = [];
     F.touching = new Set(F.entities.filter(e => touchBox(e) && inBox(x, y - 2, touchBox(e))));
-    F.camLock = false; F.hideParty = false; F.effects = []; F.calm = 90;
+    F.camLock = false; F.hideParty = false; F.hideFollowers = false; F.effects = []; F.calm = 90;
+    if (window.Modes) window.Modes.onLoad();
     snapCamera();
     if (m.music) SND.playMusic(m.music);
   }
@@ -249,7 +251,7 @@ const Field = (() => {
         L.moving = true;
         F.history.unshift({ x: L.x, y: L.y, dir: L.dir });
         if (F.history.length > 80) F.history.length = 80;
-      }
+      } else if (window.Explore) window.Explore.tryPush(L, Math.sign(dx), Math.sign(dy)); // pousser un bloc
     }
     // suiveurs
     for (let i = 1; i < F.actors.length; i++) {
@@ -309,13 +311,14 @@ const Field = (() => {
     });
   }
   async function savePoint() {
-    const r = await UI.ask(null, 'Un point de repos scintille. Te reposer et sauvegarder la partie ?', ['Oui', 'Non'], { cancel: 1 });
-    if (r === 0) {
-      Game.healAll();
-      SND.sfx('heal');
-      const ok = Game.save();
-      await UI.say(null, ok ? 'L\'équipe est en pleine forme. Partie sauvegardée !' : 'L\'équipe est en pleine forme. (Sauvegarde impossible sur ce navigateur.)');
-    }
+    const r = await UI.ask(null, 'Un point de repos scintille. Que faire ?', ['Se reposer et sauvegarder', 'Se reposer', 'Partir'], { cancel: 2 });
+    if (r === 2) return;
+    Game.healAll();
+    SND.sfx('heal');
+    const n = r === 0 ? await UI.chooseSlot() : null;
+    if (!n) { await UI.say(null, 'L\'équipe est en pleine forme !'); return; }
+    const ok = Game.save(n);
+    await UI.say(null, ok ? 'L\'équipe est en pleine forme. Partie sauvegardée (emplacement ' + n + ') !' : 'L\'équipe est en pleine forme. (Sauvegarde impossible sur ce navigateur.)');
   }
 
   function updateNPCs() {
@@ -337,7 +340,7 @@ const Field = (() => {
           else e.wt = 0;
         }
       }
-      if (e.kind === 'enemy' && !locked()) updateEnemy(e);
+      if (e.kind === 'enemy' && !locked() && !UI.blocking()) updateEnemy(e); // les ennemis attendent pendant les menus
       if (e.moving || (e.kind === 'enemy')) e.anim++;
     }
   }
@@ -383,6 +386,7 @@ const Field = (() => {
     for (const a of F.actors) { if (a.moving) a.anim++; else a.anim = 0; }
     if (F.calm > 0 && !locked()) F.calm--;
     updateNPCs();
+    if (window.Modes) window.Modes.update(); // gardes en patrouille (infiltration)
     updateCamera();
   }
 
@@ -503,6 +507,7 @@ const Field = (() => {
     }
     // éléments plats au sol
     for (const e of F.entities) if (!e.gone && e.visible && e.kind === 'save') drawEntity(e, cx, cy);
+    if (window.Modes) window.Modes.drawField(cx, cy); // champs de vision des gardes
     const list = [];
     for (const o of F.objects) {
       if (o.x - cx > SW || o.y - cy > SH || o.x + o.img.width - cx < 0 || o.y + o.img.height - cy < 0) continue;
@@ -516,7 +521,7 @@ const Field = (() => {
     }
     if (!F.battle && !F.hideParty) for (let i = F.actors.length - 1; i >= 0; i--) {
       const a = F.actors[i];
-      if (a.hidden) continue;
+      if (a.hidden || (F.hideFollowers && i > 0)) continue;
       list.push({ y: a.y + (i === 0 ? 0.5 : 0), d: () => drawCharAt(a.sprite, a.x - cx, a.y - cy, a.dir, a.anim, a.moving, a.z, a.img) });
     }
     list.sort((a, b) => a.y - b.y);
@@ -527,6 +532,7 @@ const Field = (() => {
       ctx.fillStyle = 'rgba(16,16,70,0.42)'; ctx.fillRect(0, 0, SW, SH);
     }
     if (F.map.tint) { ctx.fillStyle = F.map.tint; ctx.fillRect(0, 0, SW, SH); }
+    if (F.map.dark && window.Explore) window.Explore.drawDark(cx, cy); // grottes obscures
     if (F.map.glow) { // lueurs (feux de camp, lave) par-dessus la nuit
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (const e of F.entities) if (!e.gone && (e.kind === 'fire') && Math.abs(e.x - cx - SW / 2) < SW) {

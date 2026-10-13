@@ -5,33 +5,66 @@ const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
 // ---------------- Entrées ----------------
+// Joueur 1 : clavier (flèches, ZQSD, Z/Entrée, X/Échap...), écran tactile et 1re manette.
+// Joueur 2 (combats à deux) : I J K L, U (valider), O (retour) et 2e manette.
+const BUTTONS = ['up', 'down', 'left', 'right', 'a', 'b', 'run', 'mute', 'menu'];
+function makePad() {
+  const prev = {}, cur = {}, hold = {};
+  return {
+    prev, cur, hold,
+    feed(raw) { for (const b of BUTTONS) { prev[b] = cur[b]; cur[b] = !!raw[b]; hold[b] = cur[b] ? (hold[b] || 0) + 1 : 0; } },
+    down: b => !!cur[b],
+    pressed: b => cur[b] && !prev[b],
+    repeat: b => cur[b] && (!prev[b] || (hold[b] > 16 && hold[b] % 4 === 0)),
+    clear() { for (const b in cur) prev[b] = true; },
+  };
+}
 const Input = (() => {
   const MAP = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
     KeyZ: 'a', Enter: 'a', Space: 'a', KeyX: 'b', Escape: 'b', Backspace: 'b', ShiftLeft: 'run', ShiftRight: 'run', KeyM: 'mute', KeyC: 'menu', Tab: 'menu',
   };
-  const held = {}, touch = {}, prev = {}, cur = {}, hold = {}, latch = {};
+  const MAP2 = { KeyI: 'up', KeyK: 'down', KeyJ: 'left', KeyL: 'right', KeyU: 'a', KeyO: 'b' };
+  const held = {}, touch = {}, latch = {}, held2 = {}, latch2 = {};
   window.addEventListener('keydown', e => {
-    const b = MAP[e.code];
+    const b = MAP[e.code], b2 = MAP2[e.code];
     if (b) { if (!held[b]) latch[b] = true; held[b] = true; e.preventDefault(); }
+    if (b2) { if (!held2[b2]) latch2[b2] = true; held2[b2] = true; }
     SND.init();
   });
-  window.addEventListener('keyup', e => { const b = MAP[e.code]; if (b) { held[b] = false; e.preventDefault(); } });
-  window.addEventListener('blur', () => { for (const k in held) held[k] = false; });
+  window.addEventListener('keyup', e => {
+    const b = MAP[e.code], b2 = MAP2[e.code];
+    if (b) { held[b] = false; e.preventDefault(); }
+    if (b2) held2[b2] = false;
+  });
+  window.addEventListener('blur', () => { for (const k in held) held[k] = false; for (const k in held2) held2[k] = false; });
   function setTouch(b, v) { if (v && !touch[b]) latch[b] = true; touch[b] = v; if (v) SND.init(); }
-  function poll() {
-    for (const b of ['up', 'down', 'left', 'right', 'a', 'b', 'run', 'mute', 'menu']) {
-      prev[b] = cur[b];
-      cur[b] = !!(held[b] || touch[b] || latch[b]);
-      latch[b] = false;
-      hold[b] = cur[b] ? (hold[b] || 0) + 1 : 0;
-    }
+  // manettes (API Gamepad) : croix ou stick, A/B, X = courir, Y/Start = menu, Select = son
+  function readPad(g) {
+    const r = {};
+    if (!g) return r;
+    const btn = i => !!(g.buttons[i] && g.buttons[i].pressed);
+    const ax = (i, s) => (g.axes[i] || 0) * s > 0.5;
+    r.up = btn(12) || ax(1, -1); r.down = btn(13) || ax(1, 1); r.left = btn(14) || ax(0, -1); r.right = btn(15) || ax(0, 1);
+    r.a = btn(0); r.b = btn(1); r.run = btn(2) || btn(7); r.menu = btn(3) || btn(9); r.mute = btn(8);
+    if (r.a || r.b) SND.init();
+    return r;
   }
-  const down = b => !!cur[b];
-  const pressed = b => cur[b] && !prev[b];
-  const repeat = b => cur[b] && (!prev[b] || (hold[b] > 16 && hold[b] % 4 === 0));
-  function clear() { for (const b in cur) { prev[b] = true; } }
-  return { poll, down, pressed, repeat, setTouch, clear };
+  const p1 = makePad(), p2 = makePad();
+  function poll() {
+    let pads = [];
+    try { pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : []; } catch (e) { /* manettes indisponibles */ }
+    const g1 = readPad(pads[0]), g2 = readPad(pads[1]);
+    const r1 = {}, r2 = {};
+    for (const b of BUTTONS) {
+      r1[b] = held[b] || touch[b] || latch[b] || g1[b];
+      r2[b] = held2[b] || latch2[b] || g2[b];
+      latch[b] = false; latch2[b] = false;
+    }
+    p1.feed(r1); p2.feed(r2);
+  }
+  function clear() { p1.clear(); p2.clear(); }
+  return { poll, down: p1.down, pressed: p1.pressed, repeat: p1.repeat, setTouch, clear, p1, p2, pads: () => { try { return [...navigator.getGamepads()].filter(Boolean).length; } catch (e) { return 0; } } };
 })();
 
 // ---------------- Tâches et interpolations ----------------
@@ -70,7 +103,7 @@ const wait = n => Tasks.wait(n);
 const COMPANIONS = ['bulma', 'krillin', 'yamcha', 'oolong', 'chichi'];
 const Game = {
   mode: 'title', frame: 0, playFrames: 0,
-  party: [], reserve: [], items: {}, gear: {}, train: {}, zeni: 0, balls: [], flags: {}, aff: {}, karma: 0, quests: {},
+  party: [], reserve: [], items: {}, gear: {}, train: {}, zeni: 0, balls: [], flags: {}, aff: {}, karma: 0, quests: {}, extra: {},
   mapId: null, spawn: null, shake: 0,
   newGame() {
     this.party = [makeMember('goku', 1)];
@@ -80,7 +113,7 @@ const Game = {
     equipItem(this.party[0], 'arme', 'nyoibo', true); // le bâton de Grand-père Gohan
     this.zeni = 50; this.balls = []; this.flags = {}; this.playFrames = 0;
     this.aff = {}; for (const c of COMPANIONS) this.aff[c] = 0;
-    this.karma = 0; this.quests = {};
+    this.karma = 0; this.quests = {}; this.extra = {}; this.slot = null;
   },
   addItem(id, n = 1) { this.items[id] = (this.items[id] || 0) + n; },
   useItemStock(id) { if (this.items[id] > 0) { this.items[id]--; if (!this.items[id]) delete this.items[id]; return true; } return false; },
@@ -123,24 +156,46 @@ const Game = {
       UI.notify((state === 'done' ? 'Quête terminée : ' : was ? 'Journal : ' : 'Nouvelle quête : ') + QUESTS[id].title, 120);
     }
   },
-  save() {
+  // ---- Sauvegardes : 3 emplacements (l'ancienne sauvegarde unique devient l'emplacement 1) ----
+  slot: null,
+  save(slot) {
+    slot = slot || this.slot || 1;
     const data = {
       v: 2, party: this.party, reserve: this.reserve, items: this.items, gear: this.gear, train: this.train, zeni: this.zeni, balls: this.balls, flags: this.flags,
-      aff: this.aff, karma: this.karma, quests: this.quests,
-      mapId: Field.mapId, x: Field.leader().x, y: Field.leader().y, dir: Field.leader().dir, playFrames: this.playFrames,
+      aff: this.aff, karma: this.karma, quests: this.quests, extra: this.extra,
+      mapId: Field.mapId, x: Field.leader().x, y: Field.leader().y, dir: Field.leader().dir, playFrames: this.playFrames, time: Date.now(),
     };
-    try { localStorage.setItem('dbq_save', JSON.stringify(data)); return true; } catch (e) { return false; }
+    try { localStorage.setItem('dbq_save_' + slot, JSON.stringify(data)); this.slot = slot; return true; } catch (e) { return false; }
   },
-  loadData() {
-    try { const s = localStorage.getItem('dbq_save'); const d = s ? JSON.parse(s) : null; return d && d.v === 2 ? d : null; } catch (e) { return null; }
+  loadData(slot = 1) {
+    try {
+      let s = localStorage.getItem('dbq_save_' + slot);
+      if (!s && slot === 1) s = localStorage.getItem('dbq_save');
+      const d = s ? JSON.parse(s) : null;
+      return d && d.v === 2 ? d : null;
+    } catch (e) { return null; }
   },
-  hasSave() { return !!this.loadData(); },
-  load() {
-    const d = this.loadData();
+  slots() { return [1, 2, 3].map(n => this.loadData(n)); },
+  lastSlot() { // l'emplacement le plus récent
+    let best = null, t = -1;
+    this.slots().forEach((d, i) => { if (d && (d.time || 0) > t) { t = d.time || 0; best = i + 1; } });
+    return best;
+  },
+  slotLabel(n) {
+    const d = this.loadData(n);
+    if (!d) return n + ' : (vide)';
+    const g = (d.party || [])[0], map = MAPS[d.mapId];
+    return n + ' : ' + (map ? map.name : '?') + ' (Nv ' + (g ? g.lv : '?') + ')';
+  },
+  hasSave() { return !!this.lastSlot(); },
+  load(slot) {
+    slot = slot || this.lastSlot();
+    const d = slot ? this.loadData(slot) : null;
     if (!d) return false;
+    this.slot = slot;
     this.party = d.party; this.reserve = d.reserve || []; this.items = d.items; this.zeni = d.zeni; this.balls = d.balls; this.flags = d.flags;
     this.aff = d.aff || {}; this.karma = d.karma || 0; this.quests = d.quests || {}; this.playFrames = d.playFrames || 0;
-    this.gear = d.gear || {}; this.train = d.train || {};
+    this.gear = d.gear || {}; this.train = d.train || {}; this.extra = d.extra || {};
     for (const m of this.allMembers()) { refreshTechs(m); for (const d of m.custom || []) CustomTech.register(m, d); }
     // anciennes sauvegardes : Goku récupère son bâton
     if (!d.gear) { const g = this.member('goku'); if (g && !(g.equip && g.equip.arme)) equipItem(g, 'arme', 'nyoibo', true); }

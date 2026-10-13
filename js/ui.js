@@ -47,9 +47,9 @@ const UI = (() => {
     'Grand-père Gohan': 'gohan', 'Marchand': 'villM2', 'Aubergiste': 'villF2', 'Villageoise': 'villF1', 'Villageois': 'villM1',
     'Garçon': 'villM3', 'Fillette': 'villF1', 'Garde': 'villM2', 'Nomade': 'villM1', 'Soldat': 'soldier', 'Chef Brigand': 'brigand',
     'Grand-mère': 'elder', 'Bandit': 'bandit', 'Mère': 'villF1',
-    'Ours Brigand': 'mon:ours', 'Tortue': 'mon:umigame', 'Gyumao': 'mon:gyumao', 'Esprit du Volcan': 'mon:volcan', 'Puar': 'mon:puar',
+    'Ours Brigand': 'mon:ours', 'Tortue': 'mon:umigame', 'Doyenne': 'mon:umigame', 'Bébé tortue': 'mon:umigame', 'Gardien de Pierre': 'mon:golem', 'Gyumao': 'mon:gyumao', 'Esprit du Volcan': 'mon:volcan', 'Puar': 'mon:puar',
     'Oolong Monstre': 'mon:taureau', 'Goku (singe géant)': 'mon:oozaru',
-    'Présentateur': 'annonceur', 'Jackie Chun': 'jackie', 'Nam': 'nam', 'Bactérian': 'bacterian', 'Ranfan': 'ranfan', 'Moine': 'moine',
+    'Lunch': 'lunch', 'Présentateur': 'annonceur', 'Jackie Chun': 'jackie', 'Nam': 'nam', 'Bactérian': 'bacterian', 'Ranfan': 'ranfan', 'Moine': 'moine',
     'Passeur': 'villM2', 'Spectateur': 'villM1', 'Spectatrice': 'villF1', 'Giran': 'mon:giran',
   };
   function portraitFor(name) {
@@ -150,7 +150,13 @@ const UI = (() => {
   // ---------------- Menu principal (terrain) ----------------
   let menu = null;
   function openMenu() { menu = { sel: 0, sub: null }; SND.sfx('confirm'); }
-  const MENU_ITEMS = ['Objets', 'Techniques', 'Équipement', 'Équipe', 'Style', 'Kinto\'un', 'Journal', 'Boules', 'Sauver', 'Son'];
+  const MENU_ITEMS = ['Objets', 'Techniques', 'Compétences', 'Équipement', 'Équipe', 'Style', 'Cuisine', 'Kinto\'un', 'Journal', 'Boules', 'Sauver', 'Options'];
+  const MENU_HINTS = {
+    Objets: 'Utiliser un objet.', Techniques: 'Voir et utiliser les techniques.', Compétences: 'Dépenser les points de compétence des héros.',
+    Équipement: 'Armes, tenues, couvre-chefs et accessoires.', Équipe: 'Choisir les trois héros de l\'équipe active.', Style: 'Personnaliser l\'apparence de Goku.',
+    Cuisine: 'Cuisiner des plats qui renforcent l\'équipe.', Journal: 'Quêtes en cours et liens avec tes amis.', Boules: 'Voir les Boules de Cristal (Dragon Radar).',
+    Sauver: 'Sauvegarder la partie (3 emplacements).', Options: 'Difficulté, vitesse, aides, mini-carte, joueurs, son.',
+  };
   function memberCard(m, x, y, highlight) {
     const spr = GFX.char(lookKey(m));
     ctx.fillStyle = highlight ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0)'; ctx.fillRect(x, y, 158, 46);
@@ -165,21 +171,25 @@ const UI = (() => {
     bar(x + 100, y + 40, 54, m.xp, xpToNext(m.lv), '#f8c040');
   }
   function drawMenu() {
+    if (menu.solo) { if (menu.sub) menu.sub.draw(); return; } // menu ouvert seul (options depuis l'écran titre)
     win(4, 4, 170, 168);
     Game.party.forEach((m, i) => memberCard(m, 10, 10 + i * 52, menu.sub && menu.sub.pickMember && menu.sub.msel === i));
     win(178, 4, 74, 142);
     MENU_ITEMS.forEach((s, i) => {
       const off = s === 'Kinto\'un' && !WorldMap.unlocked();
-      text(s, 192, 10 + i * 13, off ? '#6870a0' : menu.sub ? '#a0a8c8' : '#fff');
-      if (!menu.sub && i === menu.sel) cursor(181, 10 + i * 13);
+      text(s, 192, 9 + i * 11, off ? '#6870a0' : menu.sub ? '#a0a8c8' : '#fff');
+      if (!menu.sub && i === menu.sel) cursor(181, 9 + i * 11);
     });
     win(178, 148, 74, 24);
     text('Zénis', 184, 154, GRAY); FONT.drawRight(ctx, String(Game.zeni), 246, 154, YEL);
-    win(4, 176, 248, 44);
+    win(4, 176, 248, 46);
     const loc = Field.map ? Field.map.name : '';
     if (!menu.sub) {
-      const hint = ['Utiliser un objet.', 'Voir et utiliser les techniques.', 'Armes, tenues et couvre-chefs.', 'Choisir les trois héros de l\'équipe active.', 'Personnaliser l\'apparence de Goku.', WorldMap.unlocked() ? 'Voler vers un lieu déjà visité.' : 'Le nuage magique... il faudrait le trouver.', 'Quêtes en cours et liens avec tes amis.', 'Voir les Boules de Cristal (Dragon Radar).', 'Sauvegarder la partie.', 'Activer / couper le son (M).'][menu.sel];
+      const item = MENU_ITEMS[menu.sel];
+      const hint = item === 'Kinto\'un' ? (WorldMap.unlocked() ? 'Voler sur la carte du monde.' : 'Le nuage magique... il faudrait le trouver.') : MENU_HINTS[item];
+      const obj = Hud.objective();
       text(loc, 12, 182, YEL); text(hint, 12, 196);
+      if (obj) text('Objectif : ' + FONT.wrap(obj, 190)[0], 12, 208, '#a8f0c8');
       FONT.drawRight(ctx, '★' + Game.balls.length + '/7   ' + playTime(), 244, 182, '#c0c8e8');
     } else menu.sub.draw();
   }
@@ -187,6 +197,7 @@ const UI = (() => {
   function applyItemField(id, m) {
     const it = ITEMS[id];
     if (it.target === 'allyKO' && m.hp > 0) return false;
+    if (it.cure && it.target === 'ally' && m.hp > 0 && m.hp >= m.maxhp) { Game.useItemStock(id); return true; }
     if (it.target === 'ally' && m.hp <= 0) return false;
     if (it.hp) { if (m.hp >= m.maxhp) return false; m.hp = Math.min(m.maxhp, m.hp + it.hp); }
     if (it.ki) { if (m.ki >= m.maxki) return false; m.ki = Math.min(m.maxki, m.ki + it.ki); }
@@ -216,7 +227,11 @@ const UI = (() => {
         if (Input.repeat('up')) { this.sel = (this.sel + list.length - 1) % list.length; SND.sfx('cursor'); }
         if (Input.repeat('down')) { this.sel = (this.sel + 1) % list.length; SND.sfx('cursor'); }
         if (Input.pressed('b')) { menu.sub = null; SND.sfx('cancel'); }
-        if (Input.pressed('a')) { if (ITEMS[list[this.sel]].key) { SND.sfx('buzz'); return; } this.pickMember = true; this.msel = 0; SND.sfx('confirm'); }
+        if (Input.pressed('a')) {
+          const it = ITEMS[list[this.sel]];
+          if (it.key || it.ingr) { SND.sfx('buzz'); if (it.ingr) notify('Un ingrédient : à cuisiner (Menu → Cuisine).', 90); return; }
+          this.pickMember = true; this.msel = 0; SND.sfx('confirm');
+        }
       },
       draw() {
         const list = itemList();
@@ -243,7 +258,7 @@ const UI = (() => {
   function subTechs() {
     return {
       msel: 0, pickMember: true, sel: 0, target: false, tsel: 0, pop: null,
-      list(m) { return m.techs.concat((m.custom || []).length < MAX_CUSTOM ? ['__new'] : []); },
+      list(m) { return availTechs(m).concat((m.custom || []).length < MAX_CUSTOM ? ['__new'] : []); },
       update() {
         const m = Game.party[this.msel];
         if (this.pickMember) {
@@ -768,6 +783,41 @@ const UI = (() => {
       },
     };
   }
+  // ---------------- Options ----------------
+  function subOptions() {
+    return {
+      sel: 0,
+      update() {
+        const L = Opt.LIST, n = L.length;
+        if (Input.repeat('up')) { this.sel = (this.sel + n - 1) % n; SND.sfx('cursor'); }
+        if (Input.repeat('down')) { this.sel = (this.sel + 1) % n; SND.sfx('cursor'); }
+        const dx = Input.repeat('right') || Input.pressed('a') ? 1 : Input.repeat('left') ? -1 : 0;
+        if (dx) { const e = L[this.sel]; Opt.set(e.key, (Opt.get(e.key) + dx + e.vals.length) % e.vals.length); SND.sfx('cursor'); }
+        if (Input.pressed('b')) { SND.sfx('cancel'); if (menu.solo) menu = null; else menu.sub = null; }
+      },
+      draw() {
+        win(4, 4, 248, 168);
+        FONT.drawCentered(ctx, 'Options', 128, 10, YEL);
+        Opt.LIST.forEach((e, i) => {
+          const y = 28 + i * 17, on = i === this.sel;
+          if (on) { ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(10, y - 3, 236, 14); cursor(12, y); }
+          text(e.name, 26, y, on ? '#fff' : GRAY);
+          FONT.drawRight(ctx, '< ' + e.vals[Opt.get(e.key)] + ' >', 242, y, on ? YEL : '#e0e4ff');
+        });
+        win(4, 176, 248, 46);
+        const e = Opt.LIST[this.sel];
+        FONT.wrap(e.help[Opt.get(e.key)], 232).slice(0, 2).forEach((l, i) => text(l, 12, 182 + i * 12));
+        text('Gauche/Droite : changer   X : retour', 12, 207, GRAY);
+      },
+    };
+  }
+  function openOptions() { menu = { sel: 0, solo: true, sub: subOptions() }; SND.sfx('confirm'); }
+  // Choisir un emplacement de sauvegarde (null si annulé)
+  async function chooseSlot(question = 'Sauvegarder dans quel emplacement ?') {
+    const r = await ask(null, question, [1, 2, 3].map(n => Game.slotLabel(n)).concat(['Annuler']), { def: (Game.slot || 1) - 1, cancel: 3 });
+    return r < 3 ? r + 1 : null;
+  }
+
   function updateMenu() {
     if (menu.sub) { menu.sub.update(); return; }
     if (Input.repeat('up')) { menu.sel = (menu.sel + MENU_ITEMS.length - 1) % MENU_ITEMS.length; SND.sfx('cursor'); }
@@ -788,13 +838,18 @@ const UI = (() => {
         Field.run(() => WorldMap.travel());
       }
       else if (s === 'Journal') menu.sub = subJournal();
+      else if (s === 'Compétences') menu.sub = Prog.subSkills();
+      else if (s === 'Cuisine') menu.sub = Prog.subCooking();
+      else if (s === 'Options') menu.sub = subOptions();
       else if (s === 'Sauver') {
-        const ok = Game.save();
-        menu.sub = { update() { if (Input.pressed('a') || Input.pressed('b')) menu.sub = null; }, draw() { text(ok ? 'Partie sauvegardée !' : 'Sauvegarde impossible sur ce navigateur.', 12, 188, ok ? GREEN : RED); } };
-        if (ok) SND.sfx('save');
-      } else if (s === 'Son') {
-        const m = SND.toggleMute();
-        notify(m ? 'Son coupé' : 'Son activé', 60);
+        menu = null;
+        Field.run(async () => {
+          const n = await chooseSlot();
+          if (!n) return;
+          const ok = Game.save(n);
+          if (ok) SND.sfx('save');
+          await say(null, ok ? 'Partie sauvegardée dans l\'emplacement ' + n + ' !' : 'Sauvegarde impossible sur ce navigateur.');
+        });
       }
     }
   }
@@ -870,5 +925,5 @@ const UI = (() => {
     if (fade.v > 0) { ctx.globalAlpha = clamp(fade.v, 0, 1); ctx.fillStyle = fade.color; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1; }
     if (card) drawCard(); // la carte de chapitre passe par-dessus les fondus
   }
-  return { win, bar, cursor, text, say, ask, notify, fade, fadeTo, openMenu, openShop, chapter, update, draw, blocking, YEL, GRAY, GREEN, RED, CYAN, isMenu: () => !!menu };
+  return { win, bar, cursor, text, say, ask, notify, fade, fadeTo, openMenu, openOptions, openShop, chooseSlot, chapter, update, draw, blocking, drawPreview, statLines, memberCard, YEL, GRAY, GREEN, RED, CYAN, isMenu: () => !!menu, closeMenu() { menu = null; }, closeSub() { if (menu) { if (menu.solo) menu = null; else menu.sub = null; } } };
 })();

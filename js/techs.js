@@ -24,8 +24,10 @@ const TECH_EFFECTS = {
   drain: { name: 'Vol de vie', cost: 4, desc: 'Le lanceur récupère 25 % des dégâts en PV.' },
   crit: { name: 'Critique', cost: 3, desc: '30 % de chances de coup critique (x1,5).' },
   revive: { name: 'Réveil', cost: 6, desc: 'Ranime aussi les alliés K.O. (40 % des PV).' },
+  poison: { name: 'Poison', cost: 4, desc: '50 % de chances d\'empoisonner la cible.' },
+  burn: { name: 'Brûlure', cost: 4, desc: '45 % de chances de brûler la cible.' },
 };
-const ATTACK_EFFECTS = ['none', 'stun', 'pierce', 'drain', 'crit'], HEAL_EFFECTS = ['none', 'revive'];
+const ATTACK_EFFECTS = ['none', 'stun', 'pierce', 'drain', 'crit', 'poison', 'burn'], HEAL_EFFECTS = ['none', 'revive'];
 const MAX_CUSTOM = 4, COST_MIN = 2, COST_MAX = 30;
 
 const CustomTech = (() => {
@@ -163,7 +165,7 @@ const CustomTech = (() => {
     const hit = (t, part) => {
       if (heal) {
         if (t.hp <= 0) { if (d.effect === 'revive') { t.hp = Math.max(1, Math.floor(t.maxhp * 0.4)); t.atb = 0; H.pop(t, 'Debout !', '#80ff90'); } }
-        else H.heal(t, Math.round(a.mag * p.pow + p.base));
+        else { H.heal(t, Math.round(a.mag * p.pow + p.base)); H.cure(t); }
         return;
       }
       if (t.dead || t.hp <= 0) return;
@@ -173,7 +175,9 @@ const CustomTech = (() => {
       if (d.effect === 'crit' && Math.random() < 0.3) { n = Math.round(n * 1.5); H.pop(t, 'Critique !', '#ffe060'); }
       H.damage(t, n, { big: !part });
       if (d.effect === 'drain' && a.hp > 0) H.heal(a, Math.max(1, Math.round(n * 0.25)));
-      if (d.effect === 'stun' && !t.dead && t.hp > 0 && Math.random() < 0.35) { t.stun = 160; H.pop(t, 'Paralysé', '#ffe060'); }
+      if (d.effect === 'stun') H.status(t, 'stun', 0.35);
+      if (d.effect === 'poison') H.status(t, 'poison', 0.5);
+      if (d.effect === 'burn') H.status(t, 'burn', 0.45);
     };
     if (d.form === 'poing') { // charge, puis ruée au corps à corps
       for (const e of ev) if (e.at === 0) { SND.sfx(e.sfx); H.fx(e.fx.type, Object.assign({}, e.fx)); }

@@ -40,12 +40,12 @@ const Tournoi = (() => {
   });
   Object.assign(ENEMIES, {
     bacterian: {
-      name: 'Bactérian', char: 'bacterian', hp: 1150, atk: 49, def: 21, spd: 13, xp: 320, zeni: 0, boss: true,
-      skills: [{ name: 'Haleine Fétide', target: 'one', pow: 1.5, chance: 0.25 }, { name: 'Gratouille Crasseuse', target: 'one', pow: 0.55, hits: 3, chance: 0.2 }],
+      name: 'Bactérian', char: 'bacterian', hp: 1150, atk: 49, def: 21, spd: 13, xp: 320, zeni: 0, boss: true, immune: ['poison'],
+      skills: [{ name: 'Haleine Fétide', target: 'one', pow: 1.5, chance: 0.25, st: 'poison', sc: 0.7 }, { name: 'Gratouille Crasseuse', target: 'one', pow: 0.55, hits: 3, chance: 0.2 }],
     },
     giran: {
       name: 'Giran', spr: 'giran', hp: 1500, atk: 52, def: 26, spd: 15, xp: 650, zeni: 0, boss: true, big: true,
-      skills: [{ name: 'Coup de Queue', target: 'one', pow: 1.7, chance: 0.25 }, { name: 'Chewing-gum Gluant', target: 'one', pow: 0.5, hits: 3, chance: 0.2 }, { name: 'Souffle de Giran', target: 'all', pow: 1.2, chance: 0.15 }],
+      skills: [{ name: 'Coup de Queue', target: 'one', pow: 1.7, chance: 0.25 }, { name: 'Chewing-gum Gluant', target: 'one', pow: 0.5, hits: 3, chance: 0.2, st: 'stun', sc: 0.5 }, { name: 'Souffle de Giran', target: 'all', pow: 1.2, chance: 0.15 }],
     },
     nam: {
       name: 'Nam', char: 'nam', hp: 1600, atk: 56, def: 24, spd: 19, xp: 800, zeni: 0, boss: true,
@@ -54,11 +54,11 @@ const Tournoi = (() => {
     // la finale, en deux temps : la pleine lune interrompt le premier
     jackie: {
       name: 'Jackie Chun', char: 'jackie', hp: 2600, atk: 60, def: 30, spd: 23, xp: 0, zeni: 0, boss: true, yieldAt: 0.5, yieldMsg: 'Le combat est interrompu !',
-      skills: [{ name: 'Danse de l\'Ivrogne', target: 'one', pow: 0.5, hits: 4, chance: 0.25 }, { name: 'Poing de la Tortue', target: 'one', pow: 2.0, chance: 0.14 }],
+      skills: [{ name: 'Danse de l\'Ivrogne', target: 'one', pow: 0.5, hits: 4, chance: 0.25, st: 'sleep', sc: 0.2 }, { name: 'Poing de la Tortue', target: 'one', pow: 2.0, chance: 0.14 }],
     },
     jackie2: {
       name: 'Jackie Chun', char: 'jackie', hp: 2600, atk: 60, def: 30, spd: 23, xp: 1500, zeni: 0, boss: true,
-      skills: [{ name: 'Danse de l\'Ivrogne', target: 'one', pow: 0.5, hits: 4, chance: 0.22 }, { name: 'Images Rémanentes', target: 'one', pow: 0.45, hits: 5, chance: 0.15 }, { name: 'Poing de la Tortue', target: 'one', pow: 2.0, chance: 0.12 }],
+      skills: [{ name: 'Kamehameha', target: 'one', pow: 2.1, chance: 0.12, beam: true }, { name: 'Danse de l\'Ivrogne', target: 'one', pow: 0.5, hits: 4, chance: 0.22, st: 'sleep', sc: 0.2 }, { name: 'Images Rémanentes', target: 'one', pow: 0.45, hits: 5, chance: 0.15 }, { name: 'Poing de la Tortue', target: 'one', pow: 2.0, chance: 0.12 }],
     },
   });
   QUESTS.tournoi = {
@@ -199,7 +199,7 @@ const Tournoi = (() => {
 
   // ---------------- PNJ de l'île ----------------
   async function moineTalk() {
-    if (Game.flags.tournoiDone) { await say('Moine', 'Le prochain Championnat du monde aura lieu dans trois ans. Entraînez-vous bien d\'ici là !'); return; }
+    if (Game.flags.tournoiDone) { await Modes.arena(); return; }
     const r = await ask('Moine', 'Bienvenue au 21e Championnat du monde des arts martiaux ! Voulez-vous inscrire vos combattants ?', ['Inscrire Goku et Krilin', 'Pas encore'], { cancel: 1 });
     if (r !== 0) return;
     const c = await ask(null, 'Une fois le tournoi commencé, les combats s\'enchaînent jusqu\'à la finale (les combattants sont soignés entre deux matchs). Prêt ?', ['C\'est parti !', 'Attendre un peu'], { cancel: 1 });
@@ -207,7 +207,7 @@ const Tournoi = (() => {
   }
   async function vendeurTalk() {
     await say('Marchand', 'Toniques, boissons, bandeaux... Tout pour les combattants !');
-    await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie', 'bandeau', 'lunettes', 'plastron']);
+    await UI.openShop(['tonique', 'super_tonique', 'boisson_ki', 'capsule_vie', 'remede', 'bandeau', 'lunettes', 'plastron', 'montre', 'bracelet_ki', 'aimant']);
   }
   async function annonceurTalk() {
     if (!Game.flags.tournoiDone) await say('Présentateur', 'Je suis le présentateur officiel du tournoi ! Tu as l\'air bien jeune... Mais au Championnat du monde, l\'âge ne compte pas !');
@@ -680,7 +680,10 @@ const Tournoi = (() => {
         await say('Bulma', '(Oh non...) C-c\'est super, Goku ! Mais promets-moi de ne JAMAIS regarder la pleine lune, d\'accord ?');
         await say('Goku', 'Promis ! ... Pourquoi tout le monde me dit toujours ça ?');
       }
-      if (Game.member('yamcha')) await say('Yamcha', 'Moi aussi, je participe ! Puar et moi, on s\'est entraînés dur toute l\'année.');
+      if (Game.member('yamcha')) {
+        await say('Yamcha', 'Moi aussi, je participe ! Puar et moi, on s\'est entraînés dur toute l\'année.');
+        if (!Game.member('puar')) { await say('Puar', 'Et cette fois, je me bats avec vous ! Je vole, alors on ne me touche pas facilement !'); Game.addMember('puar'); SND.sfx('levelup'); await say(null, 'Puar rejoint l\'équipe !'); }
+      }
       else await say(null, 'On raconte que Yamcha, le loup du désert, s\'est lui aussi inscrit au tournoi...');
       SND.sfx('levelup');
       await say(null, 'Un an d\'entraînement : Goku et Krilin gagnent deux niveaux et deviennent plus robustes. Leurs amis progressent aussi !');

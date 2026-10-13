@@ -9,7 +9,7 @@ const FILES = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'js/font.js',
-  'js/audio.js',
+  'js/audio.js', 'js/options.js',
   'js/sprites.js',
   'js/monsters.js',
   'js/gfx.js',
@@ -18,11 +18,11 @@ const FILES = [
   'js/techs.js',
   'js/engine.js',
   'js/ui.js',
-  'js/field.js',
+  'js/field.js', 'js/hud.js',
   'js/battle.js',
   'js/minigames.js',
   'js/worldmap.js',
-  'js/maps.js', 'js/tournoi.js',
+  'js/maps.js', 'js/tournoi.js', 'js/progress.js', 'js/heroes.js', 'js/explore.js', 'js/modes.js',
   'js/main.js'
 ];
 self.addEventListener('install', e => {

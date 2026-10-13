@@ -1,7 +1,8 @@
 // Équipements visibles (armes, tenues, couvre-chefs) et personnalisation de Goku.
 // Chaque apparence (équipement + style) devient une variante de sprite : 'goku~...' dans CHARS.
-const SLOTS = ['arme', 'tenue', 'tete'];
-const SLOT_NAMES = { arme: 'Arme', tenue: 'Tenue', tete: 'Tête' };
+const SLOTS = ['arme', 'tenue', 'tete', 'acc'];
+const LOOK_SLOTS = ['arme', 'tenue', 'tete']; // l'accessoire ne se voit pas sur le sprite
+const SLOT_NAMES = { arme: 'Arme', tenue: 'Tenue', tete: 'Tête', acc: 'Accessoire' };
 const STAT_NAMES = { hp: 'PV', ki: 'Ki', atk: 'Force', def: 'Défense', mag: 'Puissance', spd: 'Vitesse' };
 
 // Couleurs des pièces d'équipement (les chiffres sont des lettres de palette réservées à l'équipement)
@@ -36,6 +37,18 @@ const GEAR = {
   casque: { slot: 'tete', name: 'Casque à cornes', desc: 'Un casque de la famille du roi Gyumao.', stats: { def: 4, hp: 25 }, price: 0,
     art: { band: ['#8050c0', '#583090'], horns: '#f4ecd8' } },
 };
+
+// ---- Accessoires : effets spéciaux en combat (voir progress.js) ----
+Object.assign(GEAR, {
+  haricot_chance: { slot: 'acc', name: 'Haricot porte-bonheur', desc: 'Une fois par combat, ranime avec la moitié des PV.', stats: {}, fx: 'revive', price: 0 },
+  montre: { slot: 'acc', name: 'Montre de Bulma', desc: 'Une montre-capsule : la jauge de temps se remplit 15 % plus vite.', stats: {}, fx: 'atb', price: 420 },
+  aimant: { slot: 'acc', name: 'Aimant à Zénis', desc: 'Attire les pièces : +50 % de Zénis après les combats.', stats: {}, fx: 'zeni', price: 300 },
+  masque: { slot: 'acc', name: 'Masque à gaz', desc: 'Protège du poison et des brûlures.', stats: {}, fx: 'antitox', price: 240 },
+  oreiller: { slot: 'acc', name: 'Oreiller de voyage', desc: 'On dort si bien qu\'on ne craint plus le sommeil ni la paralysie.', stats: {}, fx: 'awake', price: 240 },
+  bracelet_ki: { slot: 'acc', name: 'Bracelet de Ki', desc: 'Rend 3 Ki à chaque tour.', stats: { ki: 4 }, fx: 'kiregen', price: 380 },
+  grelot: { slot: 'acc', name: 'Grelot de Karine', desc: 'Un grelot porte-chance : esquive +12 %.', stats: { spd: 1 }, fx: 'dodge', price: 0 },
+  pendentif: { slot: 'acc', name: 'Pendentif de plume', desc: 'Une plume sacrée : PV +40 et un peu de PV rendus à chaque tour.', stats: { hp: 40 }, fx: 'regen', price: 0 },
+});
 
 // ---------------- Personnalisation de Goku ----------------
 const STYLE_OPTS = {
@@ -86,12 +99,13 @@ function equipItem(m, slot, id, free) {
     m.equip[slot] = id;
     applyGearStats(m, id, 1);
   }
+  if (typeof recalcStats === 'function' && m.lv) recalcStats(m);
   return true;
 }
 function gearDesc(id) {
   const g = GEAR[id];
   const st = Object.keys(g.stats).map(k => STAT_NAMES[k] + ' ' + (g.stats[k] > 0 ? '+' : '') + g.stats[k]).join(', ');
-  return st;
+  return st || (g.fx ? 'Accessoire : effet spécial en combat' : '');
 }
 function itemDef(id) { return ITEMS[id] || GEAR[id]; }
 
@@ -231,12 +245,14 @@ function garmentPal(top, pants, belt) {
 }
 
 // Clé de sprite d'un héros, selon son équipement et (pour Goku) son style.
+// Sprite de base d'un héros (Lunch change d'apparence quand elle éternue)
+function memberSprite(m) { return m.id === 'lunch' && m.form === 'blonde' ? 'lunch_b' : MEMBERS[m.id].sprite; }
 function lookKey(m) {
   if (!m) return null;
-  const base = MEMBERS[m.id].sprite;
+  const base = memberSprite(m);
   const eq = m.equip || {};
   const st = m.id === 'goku' ? styleOf(m) : null;
-  const sig = SLOTS.map(s => eq[s] || '').join(',') + (st ? '|' + STYLE_KEYS.map(k => st[k]).join('') : '');
+  const sig = LOOK_SLOTS.map(s => eq[s] || '').join(',') + (st ? '|' + STYLE_KEYS.map(k => st[k]).join('') : '');
   if (sig === ',,') return base;
   const key = base + '~' + sig;
   if (CHARS[key]) return key;
@@ -251,9 +267,9 @@ function lookKey(m) {
     if (st.emblem) mods.push({ phase: 'body', fn: GearArt.badge });
     if (st.tail) { mods.push({ phase: 'back', fn: GearArt.tail }); Object.assign(pal, { Z: '#8a5a30', b: '#5a3418' }); }
   }
-  for (const slot of SLOTS) {
+  for (const slot of LOOK_SLOTS) {
     const g = GEAR[eq[slot]];
-    if (!g) continue;
+    if (!g || !g.art) continue;
     const a = g.art;
     if (a.kind === 'staff' || a.kind === 'sword') mods.push({ phase: 'back', fn: GearArt.weapon(a.kind) });
     if (a.kind === 'gloves') mods.push({ phase: 'body', fn: GearArt.gloves });
