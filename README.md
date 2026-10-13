@@ -12,12 +12,6 @@ Il tourne dans le navigateur, sans aucune dépendance : HTML5 Canvas et JavaScri
 - **Version fichier unique** : `node tools/standalone.js` génère `dragon-ball.html`, un seul fichier facile à partager.
 - **En ligne et sur téléphone** : voir ci-dessous.
 
-### Mettre le jeu en ligne (GitHub Pages)
-
-1. Sur GitHub, ouvre le dépôt → **Settings** → **Pages**.
-2. Dans « Build and deployment », choisis **Deploy from a branch**, puis la branche du jeu et le dossier **/ (root)**, et clique sur **Save**.
-3. Après une minute, le jeu est disponible à l'adresse `https://<ton-pseudo>.github.io/dragon-balll/`.
-
 ### L'installer sur téléphone (et jouer hors connexion)
 
 - **Android (Chrome)** : ouvre l'adresse du jeu, puis menu ⋮ → **Installer l'application** (ou « Ajouter à l'écran d'accueil »).
