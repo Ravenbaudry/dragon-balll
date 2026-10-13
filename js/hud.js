@@ -2,7 +2,7 @@
 const Hud = (() => {
   const TCOL = {
     '.': '#3c8a3a', ',': '#3c8a3a', '"': '#2e7a30', s: '#d8c088', p: '#a8804c', d: '#a8804c', c: '#8a8aa0', w: '#a87040', v: '#5a4440', m: '#a82434',
-    '~': '#3070d0', L: '#d84010', b: '#a87040', B: '#a87040', z: '#e8f0f8', q: '#70788c', g: '#4a5a3a',
+    '~': '#3070d0', L: '#d84010', b: '#a87040', B: '#a87040', z: '#e8f0f8', q: '#70788c', g: '#e8eef8', K: '#70b0f0',
   };
   const SOLID_COL = '#141a24';
   let mini = null, banner = null, lastMap = null;
@@ -19,7 +19,8 @@ const Hud = (() => {
     const c = GFX.mk(W * k, H * k), x = c.getContext('2d');
     for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) {
       const ch = Field.tileAt(tx, ty);
-      x.fillStyle = Field.solid[ty][tx] && ch !== '~' && ch !== 'L' ? SOLID_COL : (TCOL[ch] || '#3c8a3a');
+      const c2 = Field.map.snow && '.,"'.includes(ch) ? 'g' : ch;
+      x.fillStyle = Field.solid[ty][tx] && ch !== '~' && ch !== 'L' && ch !== 'K' ? SOLID_COL : (TCOL[c2] || '#3c8a3a');
       x.fillRect(tx * k, ty * k, k, k);
     }
     return { id: Field.mapId, v: Field.version, c, k };
@@ -59,6 +60,7 @@ const Hud = (() => {
       const obj = objective();
       banner = Opt.get('objective') && obj ? { text: obj, t: 0 } : null;
     }
+    if (Field.map.hud) Field.map.hud(calm); // chronomètre, compteur... propres à une carte
     if (!calm) return;
     if (Opt.get('minimap')) drawMini();
     if (banner) { banner.t++; drawBanner(); if (banner.t >= 240) banner = null; }

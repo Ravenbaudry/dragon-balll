@@ -97,5 +97,9 @@ window.__bot = { skill: 1, on: false };
     if (S.phase === 'input' && S.pt % 14 === 7) { const want = S.seq[S.input]; press(['up', 'right', 'down', 'left'][Math.random() < sk ? want : (want + 1) % 4]); }
   } else if (G.id === 'relever') {
     if (t % 4 === 0 && Math.random() < sk) press('a');
+  } else if (G.id === 'grimpe') { // Tour de Karine : on alterne les mains et on se plaque quand un oiseau arrive
+    const danger = S.birds.some(b => b.t >= 50 && b.t <= 74);
+    Input.setTouch('down', danger);
+    if (!danger && S.slip <= 0 && t % 6 === 0 && S.breath > 14 && Math.random() < sk) press(S.last === 'left' ? 'right' : 'left');
   }
 })();

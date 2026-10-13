@@ -1,7 +1,7 @@
 // Exploration : chargement des cartes, rendu, déplacements, PNJ, ennemis visibles.
 const Field = (() => {
   const TS = 16;
-  const SOLID = new Set(['T', 'F', 'P', 'k', 'r', 'R', '~', 'C', 'X', 'W', '#', 'f', 'I', 'D', 'n', 'L', 'Y', 'H']);
+  const SOLID = new Set(['T', 'F', 'P', 'k', 'r', 'R', '~', 'C', 'X', 'W', '#', 'f', 'I', 'D', 'n', 'L', 'Y', 'H', 'K']);
   const NATURAL = { T: '.', P: 's', k: 'd', R: 'd', I: 'c', n: '.', Y: 'v', H: 'c' };
   const GRASSY = new Set(['.', ',', '"', 'T', 'n', 'F', 'f']);
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -14,7 +14,7 @@ const Field = (() => {
   function tileAt(x, y) { if (x < 0 || y < 0 || x >= F.W || y >= F.H) return null; return F.rows[y][x]; }
   function groundOf(ch) { if (ch === '#' || ch === 'r') return F.map.ground || '.'; return NATURAL[ch] || ch; }
   function isGrassy(ch) {
-    if (ch === null) return false;
+    if (ch === null || F.map.snow) return false;
     if (GRASSY.has(ch)) return true;
     if ((ch === '#' || ch === 'r') && (F.map.ground || '.') === '.') return true;
     return false;
@@ -22,10 +22,11 @@ const Field = (() => {
 
   function drawGroundTile(x, ch, tx, ty, seed) {
     const ox = tx * TS, oy = ty * TS;
+    if (F.map.snow && '.,"'.includes(ch)) ch = 'g'; // pays enneigé
     if (ch === '.') GFX.drawGrass(x, ox, oy, seed);
     else if (ch === ',') GFX.drawFlowers(x, ox, oy, seed);
     else if (ch === '"') GFX.drawTallGrass(x, ox, oy, seed);
-    else if ('psdcwmv'.includes(ch)) {
+    else if ('psdcwmvg'.includes(ch)) {
       GFX.drawGround(x, ch, ox, oy, seed, tx, ty);
       if ('psd'.includes(ch)) {
         if (isGrassy(tileAt(tx, ty - 1))) GFX.grassEdge(x, ox, oy, 'n', seed + 1);
@@ -55,6 +56,11 @@ const Field = (() => {
         case 'B': GFX.drawBridge(x, ox, oy, true); break;
         case 'f': drawGroundTile(x, groundOf('#'), tx, ty, seed); GFX.drawFence(x, ox, oy); break;
         case 'D': x.fillStyle = '#000'; x.fillRect(ox, oy, TS, TS); break;
+        case 'K': { // le ciel, tout autour du sommet d'une tour
+          x.fillStyle = ty * TS < F.H * 8 ? '#70b0f0' : '#88c4f8'; x.fillRect(ox, oy, TS, TS);
+          if (seed % 7 === 0) { x.fillStyle = '#ffffff'; x.fillRect(ox + 2, oy + 6, 10, 3); x.fillRect(ox + 5, oy + 4, 5, 2); x.fillStyle = '#d8ecff'; x.fillRect(ox + 2, oy + 9, 10, 1); }
+          break;
+        }
         default: drawGroundTile(x, groundOf(ch), tx, ty, seed);
       }
     }
@@ -85,7 +91,7 @@ const Field = (() => {
       else if (ch === 'k') { img = T.cactus; dx = -1; dy = -9; }
       else if (ch === 'r') { img = T.rocks[h % 3]; dx = 0; dy = 1; sy = oy + 10; }
       else if (ch === 'R') { img = T.rocksD[h % 2]; dx = 0; dy = 1; sy = oy + 10; }
-      else if (ch === 'n') { img = T.pines[h % 2]; dx = -6; dy = -27; }
+      else if (ch === 'n') { img = (F.map.snow ? T.pinesS : T.pines)[h % 2]; dx = -6; dy = -27; }
       else if (ch === 'Y') { img = T.deadTrees[h % 3]; dx = -6; dy = -26; }
       else if (ch === 'I') { img = T.props.pillar; dx = 0; dy = -24; sy = oy + 14; }
       if (img) objs.push({ img, x: ox + dx, y: oy + dy, sortY: sy });
@@ -387,6 +393,7 @@ const Field = (() => {
     if (F.calm > 0 && !locked()) F.calm--;
     updateNPCs();
     if (window.Modes) window.Modes.update(); // gardes en patrouille (infiltration)
+    if (F.map.update && !locked() && !UI.blocking()) F.map.update(); // pièges, poursuites... propres à une carte
     updateCamera();
   }
 

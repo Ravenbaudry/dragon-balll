@@ -638,6 +638,8 @@ const Tournoi = (() => {
     Field.load('papaye', 16, 17, 'down');
     await UI.fadeTo(0, 30);
     await say(null, 'Fin du chapitre 8 ! Tu peux continuer à explorer le monde, t\'entraîner chez Tortue Géniale ou inventer de nouvelles techniques.');
+    await say(null, 'Quand tu seras prêt, rentre à la Kame House : l\'aventure continue avec l\'armée du Ruban Rouge !');
+    Game.setQuest('ruban', 'retour', true);
     await savePrompt();
   }
 

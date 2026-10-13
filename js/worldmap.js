@@ -10,6 +10,13 @@ const WorldMap = (() => {
     { id: 'frypan', name: 'Mont Frypan', x: 220, y: 70, land: ['frypan', 3, 17, 'down'], desc: 'Le royaume du roi Gyumao, au pied du volcan.' },
     { id: 'chateau', name: 'Château de Pilaf', x: 150, y: 28, land: ['chateau', 6, 10, 'down'], desc: 'Le repaire de l\'empereur Pilaf. Méfiance !' },
     { id: 'papaye', name: 'Île Papaye', x: 200, y: 179, land: ['papaye', 20, 20, 'up'], desc: 'L\'île du Championnat du monde des arts martiaux.' },
+    // l'arc du Ruban Rouge : ces lieux apparaissent au fil de l'histoire
+    { id: 'jingle', arc: true, name: 'Village Jingle', x: 40, y: 38, land: ['jingle', 14, 20, 'up'], desc: 'Un village enneigé du grand Nord, au pied de la Tour Muscle.' },
+    { id: 'pingouin', arc: true, name: 'Village Pingouin', x: 236, y: 104, land: ['pingouin', 15, 18, 'up'], desc: 'Un drôle de village : le professeur Senbei et la petite Arale y vivent.' },
+    { id: 'pirates', arc: true, name: 'Côte des Pirates', x: 66, y: 150, land: ['pirates', 6, 6, 'down'], desc: 'Des falaises battues par les vagues. Une grotte s\'ouvre sous la mer.' },
+    { id: 'karine', arc: true, name: 'Terre sacrée de Karine', x: 88, y: 70, land: ['karine', 14, 20, 'up'], desc: 'La forêt d\'Upa et de Bora, et la tour qui touche le ciel.' },
+    { id: 'qg', arc: true, name: 'QG du Ruban Rouge', x: 206, y: 34, land: ['qg', 15, 26, 'up'], desc: 'La forteresse de l\'armée du Ruban Rouge.' },
+    { id: 'baba', arc: true, name: 'Palais de Baba', x: 22, y: 88, land: ['baba', 13, 20, 'up'], desc: 'Le palais de la voyante Baba, au-dessus du lac maudit.' },
     // îles secrètes : il faut les survoler de près pour les découvrir
     { id: 'ile_tortue', name: 'Île de la Tortue', x: 240, y: 136, land: ['ile_tortue', 7, 8, 'up'], desc: 'Un îlot perdu où vivent de très vieilles tortues.', secret: true },
     { id: 'ile_cachee', name: 'Île Mystérieuse', x: 20, y: 170, land: ['ile_cachee', 7, 10, 'up'], desc: 'Une île brumeuse, absente de toutes les cartes...', secret: true },
@@ -22,7 +29,7 @@ const WorldMap = (() => {
   let bg = null;
   function build() {
     const c = GFX.mk(SW, SH), x = c.getContext('2d');
-    const LAND = [[130, 98, 112, 60], [58, 110, 52, 42], [150, 42, 70, 34], [216, 70, 34, 40], [92, 154, 40, 12]];
+    const LAND = [[130, 98, 112, 60], [58, 110, 52, 42], [150, 42, 70, 34], [216, 70, 34, 40], [92, 154, 40, 12], [40, 34, 32, 22]];
     const ISLES = [[121, 178, 12, 6], [200, 174, 14, 8], [240, 138, 7, 5], [20, 172, 9, 6]];
     const inE = (px, py, [cx, cy, rx, ry], n) => ((px - cx) / (rx + n)) ** 2 + ((py - cy) / (ry + n)) ** 2 <= 1;
     const land = (px, py) => { const n = (GFX.hash(px >> 2, py >> 2, 9) % 7) - 3; return LAND.some(e => inE(px, py, e, n)) || ISLES.some(e => inE(px, py, e, 0)); };
@@ -35,6 +42,7 @@ const WorldMap = (() => {
       let col;
       if (!grid[j][i]) col = near(i, j, 2) && !near(i, j, 0) ? '#5a8ee0' : h < 3 ? '#3a70c8' : '#2c5cb4';
       else if (near(i, j, 1)) col = '#f0e0a8';
+      else if (d2(i, j, 40, 34, 31, 21) < 1) col = h < 10 ? '#c8d4e8' : '#eef2fa'; // le grand Nord enneigé
       else if (d2(i, j, 158, 54, 64, 36) < 1) col = h < 8 ? '#c89858' : '#e0b878';
       else if (d2(i, j, 220, 68, 30, 34) < 1) col = h < 10 ? '#4a3430' : '#6a4a40';
       else if (d2(i, j, 62, 116, 46, 26) < 1) col = h < 25 ? '#246428' : '#2e7a34';
@@ -71,6 +79,23 @@ const WorldMap = (() => {
     // île Papaye : l'arène et la pagode du tournoi
     x.fillStyle = K; x.fillRect(186, 167, 11, 8); x.fillStyle = '#d0ccbc'; x.fillRect(187, 168, 9, 6); x.fillStyle = '#8a8676'; x.fillRect(187, 173, 9, 1);
     x.fillStyle = K; x.fillRect(204, 164, 7, 9); x.fillStyle = '#d84030'; x.fillRect(205, 167, 5, 5); x.fillStyle = '#3c8a54'; x.fillRect(203, 164, 9, 3);
+    // sapins enneigés et Tour Muscle
+    for (let k = 0; k < 16; k++) { const tx = 18 + GFX.hash(k, 5, 7) % 44, ty = 22 + GFX.hash(k, 6, 7) % 24; if (d2(tx, ty, 40, 34, 28, 18) > 1) continue; x.fillStyle = '#1e4a38'; x.fillRect(tx - 1, ty - 2, 3, 4); x.fillStyle = '#ffffff'; x.fillRect(tx, ty - 3, 1, 2); }
+    x.fillStyle = K; x.fillRect(51, 14, 9, 22); x.fillStyle = '#d84030'; x.fillRect(52, 15, 7, 20); x.fillStyle = '#f0e8e0'; for (let yy = 17; yy < 34; yy += 4) x.fillRect(52, yy, 7, 2);
+    x.fillStyle = '#f0c040'; x.fillRect(54, 12, 3, 3);
+    x.fillStyle = K; x.fillRect(35, 37, 7, 5); x.fillStyle = '#f0f0f8'; x.fillRect(36, 38, 5, 3); x.fillStyle = '#c84838'; x.fillRect(35, 36, 7, 2);
+    // la Tour de Karine : un fil blanc qui monte jusqu'au ciel
+    x.fillStyle = K; x.fillRect(91, 2, 4, 66); x.fillStyle = '#f0f0f8'; x.fillRect(92, 2, 2, 66); x.fillStyle = '#c8b070'; x.fillRect(89, 2, 8, 4); x.fillStyle = K; x.fillRect(89, 6, 8, 1);
+    // QG du Ruban Rouge
+    x.fillStyle = K; x.fillRect(197, 24, 19, 13); x.fillStyle = '#9098a8'; x.fillRect(198, 26, 17, 10); x.fillStyle = '#d82828'; x.fillRect(197, 23, 19, 3); x.fillRect(205, 29, 3, 3);
+    x.fillStyle = K; x.fillRect(214, 18, 4, 8); x.fillStyle = '#9098a8'; x.fillRect(215, 19, 2, 7);
+    // village Pingouin : maisons-champignons
+    for (const [hx, hy, c] of [[230, 98, '#f080b0'], [240, 97, '#f0c040'], [244, 106, '#60b0f0']]) { x.fillStyle = K; x.fillRect(hx - 3, hy - 2, 7, 5); x.fillStyle = c; x.fillRect(hx - 2, hy - 1, 5, 2); x.fillStyle = '#f8f0e0'; x.fillRect(hx - 1, hy + 1, 3, 1); }
+    // grotte des pirates dans la falaise
+    x.fillStyle = '#5a5048'; x.fillRect(60, 152, 10, 5); x.fillStyle = '#100808'; x.fillRect(62, 154, 5, 3);
+    // palais de Baba et son lac maudit
+    x.fillStyle = '#4a2a6a'; x.beginPath(); x.ellipse(28, 96, 7, 3, 0, 0, 7); x.fill(); x.fillStyle = '#7a4aa0'; x.fillRect(25, 95, 4, 1);
+    x.fillStyle = K; x.fillRect(17, 80, 9, 7); x.fillStyle = '#c8a0e0'; x.fillRect(18, 82, 7, 4); x.fillStyle = '#7a3aa0'; x.beginPath(); x.arc(21.5, 81, 4, Math.PI, 0); x.fill();
     // îles secrètes : une petite tortue de pierre, un sanctuaire dans la brume
     x.fillStyle = '#3a9040'; x.fillRect(238, 135, 3, 3); x.fillStyle = '#8a6a30'; x.fillRect(242, 137, 2, 2);
     x.fillStyle = K; x.fillRect(16, 166, 7, 7); x.fillStyle = '#c8c8d8'; x.fillRect(17, 167, 5, 5); x.fillStyle = '#e83030'; x.fillRect(16, 165, 7, 2);
@@ -95,7 +120,12 @@ const WorldMap = (() => {
     return new Promise(res => {
       if (!bg) bg = build();
       const p = pos || here;
-      W = { phase: 'free', here, x: p.x, y: p.y - 6, t: 0, near: null, res, sel: SPOTS.indexOf(here), fleet: fleetOn() ? { x: 200, y: 40, a: 0 } : null };
+      W = { phase: 'free', here, x: p.x, y: p.y - 6, t: 0, near: null, res, sel: SPOTS.indexOf(here), fleet: null };
+      if (fleetOn()) { // la flotte apparaît loin du nuage
+        let best = 0, bd = -1;
+        for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, d = Math.hypot(128 + Math.cos(a) * 100 - W.x, 96 + Math.sin(a * 1.7) * 70 - W.y); if (d > bd) { bd = d; best = a; } }
+        W.fleet = { x: 0, y: 0, a: best };
+      }
       Game.mode = 'worldmap';
       SND.playMusic('title');
       Input.clear();
@@ -127,7 +157,7 @@ const WorldMap = (() => {
       const F = W.fleet;
       if (F) {
         F.a += 0.01; F.x = 128 + Math.cos(F.a) * 100; F.y = 96 + Math.sin(F.a * 1.7) * 70;
-        if (Math.hypot(F.x - W.x, F.y - W.y) < 10) { SND.sfx('encounter'); close({ fleet: true, pos: { x: W.x, y: W.y + 6 } }); return; }
+        if (W.t > 90 && Math.hypot(F.x - W.x, F.y - W.y) < 10) { SND.sfx('encounter'); close({ fleet: true, pos: { x: W.x, y: W.y + 6 } }); return; }
       }
       if (Input.pressed('a') && W.near) { SND.sfx('confirm'); close(W.near); }
       else if (Input.pressed('b')) { SND.sfx('cancel'); SND.playMusic(Field.map.music); close(null); }
@@ -135,15 +165,6 @@ const WorldMap = (() => {
         const list = SPOTS.filter(visited), i = (list.indexOf(W.near) + 1) % list.length;
         if (list.length) { W.x = list[i].x; W.y = list[i].y; SND.sfx('cursor'); }
       }
-    } else if (W.phase === 'fly') {
-      if (W.t % 6 === 0) W.trail.push({ x: W.fx, y: W.fy, t: 0 });
-      W.trail.forEach(p => p.t++);
-      W.trail = W.trail.filter(p => p.t < 30);
-      const k = Math.min(1, W.t / 80), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
-      const A = W.from, B = W.to;
-      W.fx = A.x + (B.x - A.x) * e;
-      W.fy = A.y + (B.y - A.y) * e - Math.sin(k * Math.PI) * 26;
-      if (W.t >= 95) close(B);
     }
   }
   function drawRider(x, y, t) {
@@ -159,7 +180,7 @@ const WorldMap = (() => {
     for (let i = 0; i < 4; i++) { const p = ((t + i * 25) % 100) / 100; ctx.fillStyle = 'rgba(80,70,70,' + (0.6 - p * 0.6) + ')'; ctx.beginPath(); ctx.arc(220 + p * 8, 46 - p * 26, 2 + p * 4, 0, 7); ctx.fill(); }
     // lieux
     SPOTS.forEach(s => {
-      if (s.secret && !visited(s)) return;
+      if ((s.secret || s.arc) && !visited(s)) return;
       const v = visited(s), on = W.phase === 'free' && s === W.near;
       ctx.fillStyle = K; ctx.beginPath(); ctx.arc(s.x, s.y, on ? 6 : 5, 0, 7); ctx.fill();
       ctx.fillStyle = v ? (on ? '#ffffff' : '#f8c838') : '#6a7088'; ctx.beginPath(); ctx.arc(s.x, s.y, on ? 4 : 3, 0, 7); ctx.fill();
@@ -182,21 +203,9 @@ const WorldMap = (() => {
       } else {
         FONT.draw(ctx, 'Vol libre : survole la carte !', 12, 193, '#ffffff');
         FONT.drawRight(ctx, 'X : rentrer', 244, 193, UI.GRAY);
-        FONT.draw(ctx, W.fleet ? 'Attention à la flotte de Pilaf...' : 'Menu (C) : lieu suivant   Maj : plus vite', 12, 206, W.fleet ? '#ffb0a0' : UI.GRAY);
+        FONT.draw(ctx, W.fleet ? (Game.flags.ch9 ? 'Attention à la flotte du Ruban Rouge...' : 'Attention à la flotte de Pilaf...') : 'Menu (C) : lieu suivant   Maj : plus vite', 12, 206, W.fleet ? '#ffb0a0' : UI.GRAY);
       }
-    } else {
-      for (const p of W.trail) { ctx.fillStyle = 'rgba(255,240,140,' + (1 - p.t / 30) + ')'; ctx.fillRect(Math.round(p.x - 2), Math.round(p.y - 2), 3, 3); }
-      drawRider(W.fx, W.fy, t);
-      UI.win(4, 188, 248, 32);
-      FONT.drawCentered(ctx, 'En route pour : ' + W.to.name, 128, 199, '#ffffff');
     }
-  }
-  function flight(from, to) {
-    return new Promise(res => {
-      W = { phase: 'fly', from, to, t: 0, fx: from.x, fy: from.y, trail: [], res };
-      Game.mode = 'worldmap';
-      SND.sfx('disc');
-    });
   }
 
   // ---------- Décollage et atterrissage sur le terrain ----------

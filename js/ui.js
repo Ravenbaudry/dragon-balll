@@ -533,16 +533,17 @@ const UI = (() => {
         ctx.strokeStyle = '#2a7a3a'; ctx.lineWidth = 1;
         for (let i = 0; i < 160; i += 16) { ctx.fillStyle = '#1c5a28'; ctx.fillRect(48 + i, 44, 1, 92); }
         for (let i = 0; i < 92; i += 16) { ctx.fillStyle = '#1c5a28'; ctx.fillRect(48, 44 + i, 160, 1); }
+        const arc = window.Ruban ? window.Ruban.radar() : null; // l'arc du Ruban Rouge : une nouvelle chasse aux boules
+        const balls = arc ? arc.balls : Game.balls, have = n => balls.includes(n);
         for (let n = 1; n <= 7; n++) {
           const a = (n - 1) / 7 * Math.PI * 2 - Math.PI / 2;
           const bx = 128 + Math.cos(a) * 52, by = 90 + Math.sin(a) * 34;
-          const have = Game.hasBall(n);
-          ctx.drawImage(GFX.dragonBall(n, 14, !have), Math.round(bx - 8), Math.round(by - 8));
+          ctx.drawImage(GFX.dragonBall(n, 14, !have(n)), Math.round(bx - 8), Math.round(by - 8));
         }
-        FONT.drawCentered(ctx, Game.balls.length + ' / 7', 128, 84, '#80ff90');
-        const missing = [4, 2, 3, 5, 6, 1, 7].filter(n => !Game.hasBall(n));
-        text(missing.length ? 'Prochaine : ' + BALL_HINTS[missing[0]] : 'Toutes réunies ! Shenron t\'attend...', 36, 144, missing.length ? '#fff' : YEL);
-        text('Boules trouvées : ' + (Game.balls.join(', ') || 'aucune'), 12, 190, '#c0c8e8');
+        FONT.drawCentered(ctx, balls.length + ' / 7', 128, 84, '#80ff90');
+        const missing = (arc ? arc.order : [4, 2, 3, 5, 6, 1, 7]).filter(n => !have(n));
+        text(missing.length ? 'Prochaine : ' + (arc ? arc.hints : BALL_HINTS)[missing[0]] : 'Toutes réunies ! Shenron t\'attend...', 36, 144, missing.length ? '#fff' : YEL);
+        text('Boules trouvées : ' + (balls.join(', ') || 'aucune'), 12, 190, '#c0c8e8');
       },
     };
   }
@@ -925,5 +926,5 @@ const UI = (() => {
     if (fade.v > 0) { ctx.globalAlpha = clamp(fade.v, 0, 1); ctx.fillStyle = fade.color; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1; }
     if (card) drawCard(); // la carte de chapitre passe par-dessus les fondus
   }
-  return { win, bar, cursor, text, say, ask, notify, fade, fadeTo, openMenu, openOptions, openShop, chooseSlot, chapter, update, draw, blocking, drawPreview, statLines, memberCard, YEL, GRAY, GREEN, RED, CYAN, isMenu: () => !!menu, closeMenu() { menu = null; }, closeSub() { if (menu) { if (menu.solo) menu = null; else menu.sub = null; } } };
+  return { SPEAKERS, win, bar, cursor, text, say, ask, notify, fade, fadeTo, openMenu, openOptions, openShop, chooseSlot, chapter, update, draw, blocking, drawPreview, statLines, memberCard, YEL, GRAY, GREEN, RED, CYAN, isMenu: () => !!menu, closeMenu() { menu = null; }, closeSub() { if (menu) { if (menu.solo) menu = null; else menu.sub = null; } } };
 })();

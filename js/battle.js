@@ -22,7 +22,7 @@ const Battle = (() => {
   }
   function enemyC(id, x, y) {
     const d = ENEMIES[id], hp = Math.max(1, Math.round(d.hp * Opt.enemyHp()));
-    return { side: 'e', d, id, name: d.name, hp, maxhp: hp, atk: d.atk, def: d.def, mag: d.atk, spd: d.spd, x, y, atb: Math.random() * 50, flash: 0, z: 0, alpha: 1, dead: false, queued: false, stun: 0, sleep: 0, poison: 0, burn: 0, anim: 0, pose: null };
+    return { side: 'e', d, id, name: d.name, hp, maxhp: hp, atk: d.atk, def: d.def, mag: d.atk, spd: d.spd, x, y, atb: Math.random() * 50, flash: 0, z: 0, alpha: 1, dead: false, queued: false, stun: 0, sleep: 0, poison: 0, burn: 0, anim: 0, pose: null, hidden: !!d.hidden };
   }
   const livingParty = () => B.party.filter(c => c.hp > 0);
   const livingEnemies = () => B.enemies.filter(c => !c.dead && c.hp > 0);
@@ -115,8 +115,13 @@ const Battle = (() => {
     return GFX.monster(c.d.spr).h + (c.d.fly ? 8 : 0);
   }
   function center(c) { return [c.x, c.y - spriteH(c) / 2 - c.z]; }
+  function reveal(t) { t.hidden = false; fx('text', { x: t.x, y: t.y - spriteH(t) - 16, str: 'Repéré !', c: '#ffe060', life: 50 }); }
   function damage(t, n, opts = {}) {
     if (t.dead || (t.side === 'p' && t.hp <= 0)) return;
+    if (t.side === 'e' && t.hidden && !opts.dot) { // ennemi invisible : une attaque de zone le révèle, sinon on frappe souvent dans le vide
+      if (B.area) reveal(t);
+      else if (Math.random() < 0.65) { pop(t, 'Dans le vide !', '#c0c8e8'); SND.sfx('miss'); return; }
+    }
     if (t.side === 'p' && !opts.dot) { // garde, parade et protections
       if (t.guard) n *= 0.5;
       if (B.parry) n *= B.parry;
@@ -729,6 +734,7 @@ const Battle = (() => {
     a.ki += k;
     a.charged = true;
     pop(a, '+' + k + ' Ki', '#80c8ff');
+    for (const e of livingEnemies()) if (e.hidden) { reveal(e); message(a.name + ' sent la présence de l\'ennemi !', 80); }
     a.pose = null;
     await wait(16);
   }
@@ -869,6 +875,7 @@ const Battle = (() => {
       for (const t of livingParty()) {
         const [tx, ty] = center(t);
         fx('boom', { x: tx, y: ty, r: 12, life: 20 });
+        if (pureHeart(t, skill)) continue;
         damage(t, physDmg(e, t, skill.pow), { from: e });
         if (skill.st) addStatus(t, skill.st, skill.sc || 0.3);
         await wait(3);
@@ -886,9 +893,17 @@ const Battle = (() => {
           await wait(hits > 1 ? 7 : 2);
         }
         if (skill.st && t.hp > 0) addStatus(t, skill.st, skill.sc || 0.3);
+        if (skill.drain) { const n = Math.round(e.maxhp * skill.drain); e.hp = Math.min(e.maxhp, e.hp + n); pop(e, '+' + n, '#80ff90'); }
         e.pose = 'attack';
       }, { hold: 12 });
     }
+  }
+  // Rayon diabolique : sans effet sur un cœur pur (Goku)
+  function pureHeart(t, skill) {
+    if (!skill.pure || t.id !== 'goku') return false;
+    fx('text', { x: t.x, y: t.y - 44, str: 'Cœur pur !', c: '#a0f0ff', life: 60 });
+    SND.sfx('miss');
+    return true;
   }
   // Rayon d'un ennemi : un héros qui connaît une vague d'énergie riposte, et c'est le duel de rayons !
   function beamTechs(c) {
@@ -904,12 +919,12 @@ const Battle = (() => {
   }
   async function enemyBeam(e, skill) {
     const targets = skill.target === 'all' ? livingParty() : [pick(livingParty())];
-    const cl = clashCandidate(targets);
+    const cl = skill.pure ? null : clashCandidate(targets);
     if (cl) { await beamClash(e, skill, cl.h, cl.id, targets); return; }
     startQTE('def', targets[0], targets, B.t + 52);
     await beamFrom(e, targets, {
       name: skill.name, all: skill.target === 'all', c1: skill.c1 || '#a030d0', c2: skill.c2 || '#f0a0ff', noQte: true,
-      onHit: t => { damage(t, kiDmg(e, t, skill.pow), { big: true, from: e }); if (skill.st) addStatus(t, skill.st, skill.sc || 0.3); },
+      onHit: t => { if (pureHeart(t, skill)) return; damage(t, kiDmg(e, t, skill.pow), { big: true, from: e }); if (skill.st) addStatus(t, skill.st, skill.sc || 0.3); },
     });
   }
   async function beamClash(e, skill, h, techId, targets) {
@@ -956,6 +971,8 @@ const Battle = (() => {
     if (actors.some(c => c.hp <= 0 || c.dead)) { for (const c of actors) { c.queued = false; } B.busy = false; return; }
     if (actors.some(c => c.stun > 0 || c.sleep > 0)) { for (const c of actors) { c.queued = false; c.atb = 0; } B.busy = false; return; } // paralysé ou endormi : action perdue
     for (const c of actors) { c.atb = 0; if (c.side === 'p' && act.kind !== 'guard') c.guard = false; }
+    const tgt = act.kind === 'tech' ? TECHS[act.id].target : act.kind === 'dual' ? act.dual.target : act.kind === 'triple' ? 'allEnemies' : null;
+    B.area = tgt === 'allEnemies';
     try {
       if (act.kind === 'attack') await doAttack(act.actor, act.target);
       else if (act.kind === 'tech') await doTech(act.actor, act.id, act.target);
@@ -973,7 +990,7 @@ const Battle = (() => {
       c.qteMul = null; c.qteRes = null; c.techMul = null;
       if (c.side === 'p' && act.kind !== 'charge' && act.kind !== 'guard') c.charged = false;
     }
-    B.parry = null; B.qte = null;
+    B.parry = null; B.qte = null; B.area = false;
     await wait(6);
     B.busy = false;
     checkEnd();
@@ -1038,7 +1055,7 @@ const Battle = (() => {
   async function defeat() {
     B.busy = true; B.menu = null;
     if (B.opts.spar) { // combat amical : pas de game over
-      message('Combat amical perdu...', 999);
+      message(B.opts.loseMsg || 'Combat amical perdu...', 999);
       await wait(80);
       for (const c of B.party) c.hp = c.maxhp;
       await finish('lose');
@@ -1313,7 +1330,7 @@ const Battle = (() => {
       out.push({
         y: e.y, d: () => {
           const x = e.x - cx, y = e.y - cy;
-          ctx.globalAlpha = clamp(e.alpha, 0, 1);
+          ctx.globalAlpha = clamp(e.alpha, 0, 1) * (e.hidden ? 0.12 + Math.abs(Math.sin(B.t * 0.05)) * 0.1 : 1);
           const white = e.flash > 0 && e.flash % 4 < 2;
           if (e.d.char) {
             const spr = GFX.char(e.d.char);

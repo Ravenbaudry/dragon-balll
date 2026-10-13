@@ -11,6 +11,7 @@ const SUITES = {
   'story-good': () => require('./story.test').variant('good'),
   'story-bad': () => require('./story.test').variant('bad'),
   tournoi: () => require('./tournoi.test'),
+  ruban: () => require('./ruban.test'),
 };
 
 (async () => {

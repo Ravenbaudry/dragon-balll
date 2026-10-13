@@ -371,7 +371,7 @@ const GFX = (() => {
       return tint.d;
     }, tint.o);
   }
-  function makePine(seed) {
+  function makePine(seed, snow) {
     const c = mk(28, 44), x = c.getContext('2d');
     x.fillStyle = '#3a2416'; x.fillRect(11, 32, 6, 10); x.fillStyle = '#6a4224'; x.fillRect(12, 32, 4, 9);
     const layers = [[14, 4, 4], [14, 10, 7], [14, 17, 10], [14, 24, 13]];
@@ -385,6 +385,7 @@ const GFX = (() => {
         x.fillStyle = '#1e4a38'; x.fillRect(cx - w, cy + yy, w * 2 + 1, 1);
         x.fillStyle = '#2e6a4a'; x.fillRect(cx - w, cy + yy, w, 1);
         x.fillStyle = '#4a8a5a'; x.fillRect(cx - w, cy + yy, 1, 1);
+        if (snow && yy < 3 + (seed + i) % 2) { x.fillStyle = yy ? '#d8e4f4' : '#ffffff'; x.fillRect(cx - w, cy + yy, w * 2 + 1 - (yy ? 2 : 0), 1); }
       }
     });
     return c;
@@ -442,6 +443,7 @@ const GFX = (() => {
     c: { base: '#8a8aa0' },
     w: { base: '#b07840' },
     m: { base: '#b02838' },
+    g: { base: '#eef2fa', specks: [['#d4dcec', 12], ['#ffffff', 8], ['#b8c4dc', 3]] }, // neige
   };
   function drawGround(x, ch, ox, oy, seed, tx, ty) {
     if (ch === 'd') {
@@ -534,7 +536,7 @@ const GFX = (() => {
       x.fillStyle = t.c; x.fillRect(ox + px, oy + py + 2, Math.min(w, 16 - px), 1);
     }
     x.fillStyle = t.c; x.fillRect(ox + Math.floor(R() * 16), oy, 1, TS);
-    if (!nb.n) { x.fillStyle = '#58a848'; x.fillRect(ox, oy, TS, 3); x.fillStyle = '#40903c'; x.fillRect(ox, oy + 3, TS, 1); x.fillStyle = t.d; x.fillRect(ox, oy + 4, TS, 1); }
+    if (!nb.n) { x.fillStyle = t.top || '#58a848'; x.fillRect(ox, oy, TS, 3); x.fillStyle = t.top2 || '#40903c'; x.fillRect(ox, oy + 3, TS, 1); x.fillStyle = t.d; x.fillRect(ox, oy + 4, TS, 1); }
     if (!nb.s) { x.fillStyle = t.c; x.fillRect(ox, oy + 14, TS, 2); }
   }
   function drawCastleWall(x, ox, oy, seed, nb) {
@@ -1043,11 +1045,13 @@ const GFX = (() => {
     tiles.rocks = [0, 1, 2].map(i => makeRock(21 + i * 5));
     tiles.rocksD = [0, 1].map(i => makeRock(41 + i * 5, { o: '#3a2418', d: '#8a5a38', m: '#a87448', l: '#c89060', h: '#e8b480' }));
     tiles.pines = [0, 1].map(i => makePine(i));
+    tiles.pinesS = [0, 1].map(i => makePine(i, true));
     tiles.buildings = {
       hut: makeHut(), kame: makeKameHouse(),
       dome1: makeDome('#4a7ac8'), dome2: makeDome('#d84848'), dome3: makeDome('#48a868'),
       shop: makeDome('#e8a020', true, 'BOUTIQUE'), inn: makeDome('#8a58c8', true, 'AUBERGE'),
       oolong: makeDome('#f080b0', true, 'OOLONG'),
+      domeN: makeDome('#78a8d8'), domeR: makeDome('#f080b0'), domeJ: makeDome('#f0c040'), labo: makeDome('#60b0f0', true, 'LABO'),
       cave: makeCave(), castle: makeCastle(), stall: makeStall(), pagoda: makePagoda(),
     };
     tiles.deadTrees = [0, 1, 2].map(i => makeDeadTree(71 + i * 13));

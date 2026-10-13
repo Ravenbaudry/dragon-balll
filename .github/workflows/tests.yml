@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [static, features, story-good, story-bad, tournoi]
+        suite: [static, features, story-good, story-bad, tournoi, ruban]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

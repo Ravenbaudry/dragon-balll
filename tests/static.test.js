@@ -3,7 +3,7 @@ const fs = require('fs'), vm = require('vm'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
-const SOLID = new Set(['T', 'F', 'P', 'k', 'r', 'R', '~', 'C', 'X', 'W', '#', 'f', 'I', 'D', 'n', 'L', 'Y', 'H']);
+const SOLID = new Set(['T', 'F', 'P', 'k', 'r', 'R', '~', 'C', 'X', 'W', '#', 'f', 'I', 'D', 'n', 'L', 'Y', 'H', 'K']);
 
 module.exports = {
   title: 'syntaxe, lint, cartes et références',
@@ -34,7 +34,7 @@ module.exports = {
     // ---- données du jeu ----
     const ctx = { console, Math, UI: {}, Field: {}, Game: { flags: {}, hasBall: () => false, quest: () => null, member: () => null }, Battle: {}, SND: {}, wait: () => {}, Main: {}, window: {}, clamp: (v, a, b) => Math.max(a, Math.min(b, v)), pick: a => a[0], rand: (a, b) => a };
     vm.createContext(ctx);
-    for (const f of ['sprites', 'monsters', 'data', 'gear', 'techs', 'maps', 'tournoi', 'progress', 'heroes', 'explore', 'modes', 'worldmap']) {
+    for (const f of ['sprites', 'monsters', 'data', 'gear', 'techs', 'maps', 'tournoi', 'progress', 'heroes', 'explore', 'modes', 'ruban', 'ruban2', 'ruban3', 'worldmap']) {
       const file = 'js/' + f + '.js';
       if (fs.existsSync(path.join(ROOT, file))) vm.runInContext(read(file).replace(/^const /gm, 'var ').replace(/^let /gm, 'var '), ctx, { filename: file });
     }

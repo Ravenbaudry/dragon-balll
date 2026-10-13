@@ -29,13 +29,16 @@ La partie se sauvegarde dans le navigateur (points de repos scintillants ou menu
 
 ## Commandes
 
-| Action | Clavier | Tactile |
-| --- | --- | --- |
-| Se déplacer | Flèches / ZQSD / WASD | Croix directionnelle |
-| Valider / parler / ouvrir | Z, Entrée, Espace | A |
-| Retour / menu | X, Échap | B / MENU |
-| Courir | Maj | COURIR |
-| Couper le son | M | menu → Son |
+| Action | Clavier | Manette | Tactile |
+| --- | --- | --- | --- |
+| Se déplacer | Flèches / ZQSD / WASD | Croix ou stick | Croix directionnelle |
+| Valider / parler / ouvrir | Z, Entrée, Espace | A | A |
+| Retour | X, Échap | B | B |
+| Menu (et combat auto en combat) | C, Tab | Start / Y | MENU |
+| Courir | Maj | X / gâchette | COURIR |
+| Couper le son | M | | menu → Options |
+
+**Mode 2 joueurs** (menu → Options) : le deuxième joueur dirige les 2e et 3e héros en combat avec I/J/K/L, U (valider) et O (retour), ou avec une deuxième manette.
 
 Sur téléphone, les commandes tactiles s'affichent automatiquement.
 
@@ -44,13 +47,47 @@ Sur téléphone, les commandes tactiles s'affichent automatiquement.
 - **Exploration façon Chrono Trigger** : vue de dessus, les membres de l'équipe suivent le meneur, et les ennemis sont visibles sur la carte (pas de combats aléatoires).
 - **Combats ATB sur le terrain** : le combat se déroule directement sur la carte, sans écran séparé. Chaque héros a sa jauge de temps (mode « attente » pendant les sous-menus).
 - **Sprites détaillés** : personnages en 24x32 pixels avec ombrages et contours, monstres et boss redessinés, portraits dans les dialogues.
-- **5 héros** : Goku, Bulma, Krilin, Yamcha et Oolong. Trois combattent en même temps, les autres attendent en réserve (menu → Équipe) et gagnent quand même de l'expérience.
+- **8 héros** : Goku, Bulma, Krilin, Yamcha, Oolong, et les nouveaux venus **Lunch** (elle change de personnalité en éternuant : douce soigneuse ou blonde à la mitraillette), **Puar** (il vole, esquive et se métamorphose) et **Chichi** (rayon du casque, et une vraie colère si Goku tombe). Trois combattent en même temps, les autres attendent en réserve (menu → Équipe). C-8 rejoint aussi l'équipe le temps de la Tour Muscle.
 - **Techniques** : Kamehameha, Bâton Magique, Jan Ken, Capsules de Bulma, Taiyoken, Kienzan, Poing du Loup, Sokidan, Transformation…
-- **Techniques doubles** : quand deux héros ont leur jauge pleine, ils peuvent lancer *Double Kamehameha*, *Flash Bombe*, *Double Croc*, *Taureau Kamehameha*…
+- **Techniques doubles et triples** : *Double Kamehameha*, *Flash Bombe*, *Promesse Éternelle*… et, à trois, *Triple Kamehameha*, *Grande Farce*, *Ruée de la Tortue* ou *Pique-nique*.
+
+### Des combats plus riches
+
+- **Frappes au bon moment** : appuie au bon instant pour un coup parfait, une parade, ou un Kamehameha chargé à fond.
+- **Garde et Concentrer** : se protéger (et regagner un peu de Ki), ou se concentrer pour recharger son Ki.
+- **Attaques annoncées** : un « ! » prévient qu'un boss prépare une grosse attaque. Paralyser ou endormir l'ennemi l'interrompt.
+- **Duel de rayons** : quand un ennemi lance un rayon, un héros qui connaît le Kamehameha riposte. Martèle le bouton pour repousser le rayon !
+- **Terrain** : un ennemi projeté dans l'eau, la lave ou hors du ring, des éclaboussures sur les voisins, et les rochers qui protègent des attaques de Ki.
+- **États et faiblesses** : poison, brûlure, sommeil, paralysie ; certains ennemis résistent aux coups ou au Ki, d'autres sont immunisés à certains états. Il y a même un ennemi invisible et un rayon diabolique sans effet sur un cœur pur...
+- **Combat automatique**, **vitesse des combats** (normale, rapide, très rapide) et **mode 2 joueurs**.
+
+### Progression
+
+- **Compétences** (menu → Compétences) : un point tous les deux niveaux pour apprendre des talents passifs (Vigueur, Contre-attaque, Ténacité, Premier coup, Œil du tigre...).
+- **Maîtrise des techniques** : plus on utilise une technique, plus elle devient puissante et économique (niveaux 1 à 3).
+- **Accessoires** : un emplacement de plus, avec des effets (relever un héros K.O., jauge plus rapide, Ki ou PV rendus à chaque tour, anti-poison, esquive...).
+- **Cuisine** (menu → Cuisine) : pêche (Goku pêche avec sa queue !) et cueillette sur les cartes, puis des plats qui donnent un bonus pendant plusieurs combats.
+
+### Exploration
+
+- **Les pouvoirs des héros** : Goku allonge son Bâton Magique pour franchir un passage, pulvérise les rochers d'un Kamehameha, Oolong ou Puar se changent en souris pour fouiller un trou, Bulma pirate les portes électroniques, et le Taiyoken de Krilin éclaire les grottes obscures.
+- **Un secret dans chaque zone**, une **grotte à énigmes** (blocs à pousser sur des dalles) et des **trésors enterrés** que le Dragon Radar de Bulma fait biper.
+- **Kinto'un en vol libre** : on pilote le nuage au-dessus de la carte du monde, on atterrit où l'on veut... gare à la flotte de Pilaf (un shoot'em up) ! Deux **îles secrètes** se découvrent en survolant la mer : la doyenne des tortues et le gardien de pierre.
+
+### Modes de jeu
+
+- **Infiltration** : traverser la cour du château de Pilaf la nuit (le défi de Mai), puis le quartier général du Ruban Rouge, en se cachant dans les tonneaux.
+- **Shoot'em up** sur le Kinto'un contre les flottes de Pilaf et du Ruban Rouge.
+- **Arène de défis** (moine de l'île Papaye, après le tournoi) : survie en 10 vagues, enchaînement de boss, contre la montre, Goku seul, sans objets.
+- **Mini-jeux** : entraînement de Tortue Géniale, pêche, grimpette de la Tour de Karine.
+
+### Confort
+
+- **3 niveaux de difficulté**, **3 emplacements de sauvegarde**, **mini-carte**, **rappel de l'objectif** en entrant dans une zone, **manette**, et toutes les options dans menu → Options.
 
 ### Une histoire avec des choix
 
-- **Un prologue et 8 chapitres** : maison de Goku, forêt de Paozou, Kame House, village d'Aru, désert de Diablo, Mont Frypan, château de Pilaf, la nuit de pleine lune et, après les crédits, le Championnat du monde.
+- **Un prologue, 13 chapitres et un bonus** : maison de Goku, forêt de Paozou, Kame House, village d'Aru, désert de Diablo, Mont Frypan, château de Pilaf, la nuit de pleine lune, le Championnat du monde (après les crédits), puis tout l'**arc du Ruban Rouge** et Baba la voyante.
 - **Des choix qui comptent** : épargner ou chasser l'Ours Brigand, poursuivre les espions de Pilaf, pardonner à Oolong ou le livrer au village, recruter Yamcha ou non, promettre d'épouser Chichi… et sauver le château de Gyumao en affrontant l'Esprit du Volcan, ou tout pulvériser d'un Kamehameha.
 - **Affinités** : tes réponses rapprochent (ou fâchent) tes compagnons. Les soirées au feu de camp permettent de mieux les connaître.
 - **Quêtes secondaires** suivies dans le Journal (menu) : la tortue perdue, la grand-mère malade, le marchand dévalisé, la boussole du nomade, le château en flammes.
@@ -70,6 +107,16 @@ Après les crédits, **un an plus tard** : Goku et Krilin ont fini leur entraîn
 - **Des choix** : promettre ou non d'aider le village de Nam, garder ou donner la bourse du champion, et deviner (ou pas) qui se cache derrière les lunettes noires de Jackie Chun.
 - **La finale** : la nuit tombe, la pleine lune se lève, Goku redevient singe géant... et Jackie Chun détruit la lune d'un Kamehameha. Le combat reprend, puis c'est le double K.O. : dans le mini-jeu *« Debout, Goku ! »*, il faut marteler le bouton pour que Goku se relève avant la fin du compte.
 - **Deux issues** : champion (Ceinture du Champion) ou finaliste (Bandeau d'Argent), avec leur épilogue.
+
+### L'arc du Ruban Rouge (chapitres 9 à 13 et bonus)
+
+Après le tournoi, rentre à la Kame House : Bulma a fabriqué un nouveau radar, et Goku part à la recherche de la boule à quatre étoiles de son grand-père. Mais l'armée du Ruban Rouge cherche aussi les boules...
+- **Chapitre 9, la Tour Muscle** : le village enneigé de Jingle, la petite Suno, puis cinq étages et leurs gardiens : le Sergent Métallique, le ninja Murasaki et ses frères (une partie de cache-cache dans les jarres), C-8 qui refuse de se battre et devient ton ami, la fosse de Buyon (les coups rebondissent... il faut le faire geler) et le général Blanc.
+- **Chapitre 10, le village Pingouin** : le radar est cassé ! Le professeur Senbei peut le réparer, si tu retrouves Arale... et que tu survis à son « N'cha Punch ».
+- **Chapitre 11, la grotte des pirates** : des piques qui sortent du sol, un robot pirate, un trésor, le général Bleu et son regard paralysant (Oolong ou Puar savent qu'il a peur des souris), puis une fuite contre la montre dans un tunnel qui se remplit d'eau.
+- **Chapitre 12, la Tour de Karine** : Upa et Bora, Tao Paï Paï, imbattable la première fois... Il faut grimper la tour (mini-jeu), attraper Karine pour boire l'eau sacrée, puis redescendre prendre sa revanche.
+- **Chapitre 13, l'assaut du QG** : la flotte du Ruban Rouge en shoot'em up, l'infiltration de la cour, le bureau du commandant Red, la trahison de Black et son Armure de Combat.
+- **Bonus, Baba la voyante** : cinq combattants au-dessus du lac maudit (Dracula Man, l'Homme Invisible, la Momie, Akkuman et son rayon diabolique, et un mystérieux masqué...). Puis Shenron, et le vœu promis à Upa.
 
 ### Atelier de techniques
 
@@ -93,14 +140,14 @@ Un aperçu animé montre la technique sur des mannequins d'entraînement, avec l
   
   Chaque héros peut s'entraîner. Battre son record rend plus fort, et un rang S rapporte un équipement exclusif.
 - **Équipement visible sur les sprites** : armes (bâton, sabre, gants), tenues (plastron, kimono de la Tortue, armure, carapace) et couvre-chefs (bandeaux, lunettes, casque à cornes). Ils apparaissent sur le terrain, en combat et dans les portraits (menu → Équipement).
-- **Voyage rapide en Kinto'un** (menu → Kinto'un) : une fois le nuage obtenu chez Tortue Géniale, on survole la carte du monde et on choisit un lieu déjà visité. Goku décolle, traverse la carte sur son nuage et atterrit près du point de repos.
+- **Voyage en Kinto'un** (menu → Kinto'un) : une fois le nuage obtenu chez Tortue Géniale, on survole librement la carte du monde et on atterrit sur un lieu connu (menu : passer d'un lieu à l'autre, Maj : voler plus vite).
 - **Personnalisation de Goku** (menu → Style) : couleur du kimono, de la ceinture, des bottes et des cheveux, queue de singe, emblème… et un style secret à débloquer.
 
 ### Et aussi
 
-- **13 boss** : l'Ours Brigand, Krilin (duel amical), le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan, la Pilaf Machine, Goku en singe géant, puis Bactérian, Giran, Nam et Jackie Chun au tournoi.
-- **14 zones**, dont le campement, le Mont Frypan, le cœur du volcan, les cachots du château et l'île Papaye.
-- Boutiques (objets et équipements), auberge, coffres, Dragon Radar (menu → Boules), objets clés, sauvegarde.
+- **Plus de 30 boss** : l'Ours Brigand, Krilin, le Chef Brigand, Oolong, Yamcha et Puar, Chichi, l'Esprit du Volcan, la Pilaf Machine, le singe géant, les combattants du tournoi, le gardien de pierre, puis tous ceux du Ruban Rouge et de Baba.
+- **Plus de 35 zones**, des forêts de Paozou aux neiges de Jingle, de la grotte sous-marine au sommet de la Tour de Karine.
+- Boutiques (objets et équipements), auberge, coffres, Dragon Radar (menu → Boules), objets clés, journal des quêtes.
 
 ## Structure du code
 
@@ -111,17 +158,26 @@ js/audio.js       musiques chiptune originales et effets sonores
 js/sprites.js     sprites des personnages (têtes, corps, palettes)
 js/monsters.js    monstres et boss (grilles + palettes)
 js/gfx.js         tuiles procédurales, arbres, bâtiments, objets
+js/options.js     options (difficulté, vitesse, combat auto, 2 joueurs...)
 js/data.js        héros, techniques, objets, ennemis, quêtes
-js/gear.js        équipements visibles et personnalisation de Goku
+js/gear.js        équipements visibles, accessoires et personnalisation de Goku
 js/techs.js       techniques personnalisées (atelier, aperçu, combat)
 js/engine.js      entrées, tâches asynchrones, état de la partie, sauvegarde
 js/ui.js          fenêtres, dialogues et portraits, menu, journal, boutique
 js/field.js       exploration : cartes, collisions, PNJ, ennemis visibles
-js/battle.js      système de combat ATB
+js/hud.js         mini-carte, rappel de l'objectif
+js/battle.js      système de combat ATB (frappes au bon moment, duels de rayons...)
 js/minigames.js   mini-jeux d'entraînement de Tortue Géniale
-js/worldmap.js    carte du monde et voyage en Kinto'un
+js/worldmap.js    carte du monde, vol libre en Kinto'un et flotte ennemie
 js/maps.js        cartes, événements, scénario et choix
 js/tournoi.js     chapitre 8 : île Papaye, tournoi, destruction de la lune
+js/progress.js    compétences, maîtrise, cuisine, pêche et cueillette
+js/heroes.js      Lunch, Puar et Chichi
+js/explore.js     pouvoirs sur la carte, secrets, grotte à énigmes, îles secrètes
+js/modes.js       shoot'em up, infiltration, arène de défis
+js/ruban.js       arc du Ruban Rouge : personnages, chapitres 9 et 10
+js/ruban2.js      chapitres 11 et 12 : la grotte des pirates, la Tour de Karine
+js/ruban3.js      chapitre 13 et bonus : le QG, Baba la voyante, le vœu final
 js/main.js        boucle principale, écran titre, finale, épilogue et crédits
 manifest.webmanifest, sw.js, icons/   application installable et mode hors connexion
 tools/standalone.js  génère une version en un seul fichier HTML
@@ -136,12 +192,13 @@ Tous les graphismes du jeu sont générés par le code au lancement : pixel art 
 npm install          # une seule fois (ESLint et Playwright)
 npm test             # tous les tests
 npm run test:static  # vérifications rapides, sans navigateur
-node tests/run.js features story-good story-bad
+node tests/run.js features story-good story-bad tournoi ruban
 ```
 
 - **static** : syntaxe, lint, cartes (murs, sorties, atterrissages du Kinto'un), références aux ennemis, objets et sprites, musiques, fichiers du mode hors connexion.
-- **features** : menus, équipement, style, mini-jeux, voyage en Kinto'un, atelier de techniques, sauvegarde, mode hors connexion.
+- **features** : menus, équipement, style, mini-jeux, vol libre en Kinto'un et îles secrètes, atelier de techniques, sauvegarde, mode hors connexion.
 - **story-good / story-bad** : toute l'aventure, du prologue aux crédits, avec les « bons » puis les « mauvais » choix.
 - **tournoi** : le chapitre 8 en entier, une fois champion (promesse tenue, Jackie Chun démasqué) et une fois finaliste.
+- **ruban** : tout l'arc du Ruban Rouge, de la Tour Muscle au vœu pour Bora.
 
 Sur GitHub, ces tests tournent tout seuls à chaque envoi (onglet **Actions**). En cas d'échec, les captures d'écran sont jointes au résultat.
