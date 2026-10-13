@@ -19,7 +19,7 @@ const Ruban3 = (() => {
     // les cinq combattants de Baba
     dracula: { immune: ['sleep'], name: 'Dracula Man', char: 'dracula', hp: 3000, atk: 82, def: 32, spd: 26, xp: 1100, zeni: 0, boss: true,
       skills: [{ name: 'Morsure du Vampire', target: 'one', pow: 1.4, chance: 0.3, drain: 0.06 }, { name: 'Nuée de Chauves-souris', target: 'all', pow: 0.8, chance: 0.2 }] },
-    invisible: { name: 'L\'Homme Invisible', char: 'invisible', hp: 2600, atk: 80, def: 30, spd: 30, xp: 1100, zeni: 0, boss: true, hidden: true,
+    invisible: { name: 'L\'Homme Invisible', char: 'invisible', hp: 2200, atk: 80, def: 30, spd: 30, xp: 1100, zeni: 0, boss: true, hidden: true,
       skills: [{ name: 'Coups Invisibles', target: 'one', pow: 0.5, hits: 4, chance: 0.3 }] },
     momie: { immune: ['poison', 'sleep'], res: { phys: 0.85 }, name: 'La Momie', char: 'momie', hp: 4200, atk: 88, def: 44, spd: 14, xp: 1300, zeni: 0, boss: true,
       skills: [{ name: 'Bandelettes', target: 'one', pow: 1.0, chance: 0.28, st: 'stun', sc: 0.5 }, { name: 'Poing Millénaire', target: 'one', pow: 1.9, chance: 0.2 }] },
