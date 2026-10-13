@@ -46,13 +46,13 @@ const Ruban2 = (() => {
   };
   R.BUILD.karine_tour = () => { // le pied de la Tour de Karine : une colonne blanche qui monte au ciel
     const w = 48, h = 220, c = GFX.mk(w, h), x = c.getContext('2d');
-    const g = x.createLinearGradient(0, 0, 0, 60); g.addColorStop(0, 'rgba(240,240,248,0)'); g.addColorStop(1, 'rgba(240,240,248,1)');
+    const g = x.createLinearGradient(0, 0, 0, 60); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
     x.fillStyle = K; x.fillRect(10, 0, 28, h);
     x.fillStyle = '#e8e8f0'; x.fillRect(11, 0, 26, h);
     x.fillStyle = '#c0c0d0'; x.fillRect(30, 0, 7, h);
     for (let y = 8; y < h; y += 14) { x.fillStyle = '#a8a8b8'; x.fillRect(11, y, 26, 1); x.fillStyle = '#d83030'; x.fillRect(15 + (y % 28 ? 0 : 10), y + 4, 6, 4); }
     x.fillStyle = '#ffffff'; x.fillRect(13, 0, 2, h);
-    x.globalCompositeOperation = 'destination-in'; x.fillStyle = g; x.fillRect(0, 0, w, 60); x.globalCompositeOperation = 'source-over';
+    x.globalCompositeOperation = 'destination-out'; x.fillStyle = g; x.fillRect(0, 0, w, 60); x.globalCompositeOperation = 'source-over'; // le sommet se perd dans le ciel
     x.fillStyle = K; x.fillRect(4, h - 14, 40, 14); x.fillStyle = '#b8b0a0'; x.fillRect(5, h - 13, 38, 12); x.fillStyle = '#d8d0c0'; x.fillRect(5, h - 13, 38, 2);
     return c;
   };
